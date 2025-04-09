@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import { AuthCheckProps } from "@/lib/types";
 
 export default function AuthCheck({ children }: AuthCheckProps) {

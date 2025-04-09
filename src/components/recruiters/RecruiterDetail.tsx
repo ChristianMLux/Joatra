@@ -10,8 +10,8 @@ import {
 import { useAuth } from "@/providers/AuthProvider";
 import toast from "react-hot-toast";
 import { Recruiter, Job } from "@/lib/types";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
-import Button from "@/components/ui/Button";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
+import MuiButton from "@/components/ui/Button";
 import Title from "@/components/ui/Title";
 import JobList from "@/components/jobs/JobList";
 import Link from "next/link";
@@ -96,21 +96,21 @@ export default function RecruiterDetail({ recruiterId }: RecruiterDetailProps) {
       <div className="flex justify-between items-center mb-6">
         <Title text={recruiter.name} size="lg" />
         <div className="flex space-x-2">
-          <Button
+          <MuiButton
             variant="outline"
             size="sm"
             onClick={() => router.push(`/recruiters/${recruiterId}/edit`)}
           >
             Bearbeiten
-          </Button>
-          <Button
+          </MuiButton>
+          <MuiButton
             variant="danger"
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
           >
             {isDeleting ? "Wird gelöscht..." : "Löschen"}
-          </Button>
+          </MuiButton>
         </div>
       </div>
 
@@ -153,7 +153,7 @@ export default function RecruiterDetail({ recruiterId }: RecruiterDetailProps) {
             Stellen von diesem Vermittler
           </h2>
           <Link href={`/jobs/add?recruiterId=${recruiterId}`}>
-            <Button variant="primary" size="sm">
+            <MuiButton variant="primary" size="sm">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5 mr-1"
@@ -169,7 +169,7 @@ export default function RecruiterDetail({ recruiterId }: RecruiterDetailProps) {
                 />
               </svg>
               Neue Stelle hinzufügen
-            </Button>
+            </MuiButton>
           </Link>
         </div>
 

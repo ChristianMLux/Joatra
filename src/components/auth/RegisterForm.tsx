@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerWithEmail } from "@/lib/firebase/firebase";
 import toast from "react-hot-toast";
+import MuiButton from "@/components/ui/Button";
 
 export default function RegisterForm() {
   const [email, setEmail] = useState("");
@@ -97,13 +98,13 @@ export default function RegisterForm() {
           />
         </div>
 
-        <button
+        <MuiButton
           type="submit"
           className="btn-primary w-full mt-4"
           disabled={loading}
         >
           {loading ? "Wird registriert..." : "Registrieren"}
-        </button>
+        </MuiButton>
       </form>
 
       <div className="mt-4 text-center text-sm">

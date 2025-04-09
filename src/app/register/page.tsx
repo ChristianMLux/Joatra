@@ -4,7 +4,7 @@ import RegisterForm from "@/components/auth/RegisterForm";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect } from "react";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 
 export default function Register() {
   const { user, loading } = useAuth();

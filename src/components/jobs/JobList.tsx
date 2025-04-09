@@ -54,7 +54,7 @@ export default function JobList({ jobs, onJobUpdate, viewMode }: JobListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mt-[1rem]">
       {jobs.map((job) => (
         <JobCard
           key={job.id}

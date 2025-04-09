@@ -7,8 +7,8 @@ import { useAuth } from "@/providers/AuthProvider";
 import { doc, getDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { RecruiterFormProps, Recruiter } from "@/lib/types";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
-import Button from "@/components/ui/Button";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
+import MuiButton from "@/components/ui/Button";
 import Title from "@/components/ui/Title";
 import { useRecruiters } from "@/providers/RecruitersProvider";
 
@@ -165,12 +165,16 @@ export default function RecruiterForm({ recruiterId }: RecruiterFormProps) {
         </div>
 
         <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <MuiButton
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+          >
             Abbrechen
-          </Button>
-          <Button type="submit" variant="primary" isLoading={loading}>
+          </MuiButton>
+          <MuiButton type="submit" variant="primary" isLoading={loading}>
             {recruiterId ? "Aktualisieren" : "Hinzufügen"}
-          </Button>
+          </MuiButton>
         </div>
       </form>
     </div>

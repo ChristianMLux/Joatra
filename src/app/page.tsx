@@ -6,11 +6,11 @@ import JobList from "@/components/jobs/JobList";
 import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
 import { useJobs } from "@/lib/hooks/hooks";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import Title from "@/components/ui/Title";
-import FilterTabs from "@/components/jobs/FilterTabs";
+import MuiFilterTabs from "@/components/jobs/FilterTabs";
 import ViewToggle from "@/components/jobs/ViewToggle";
-import Button from "@/components/ui/Button";
+import MuiButton from "@/components/ui/Button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job } from "@/lib/types";
 
@@ -146,10 +146,10 @@ export default function Home() {
 
           <div className="flex justify-center space-x-4">
             <Link href="/login">
-              <Button variant="primary">Anmelden</Button>
+              <MuiButton variant="primary">Anmelden</MuiButton>
             </Link>
             <Link href="/register">
-              <Button variant="outline">Registrieren</Button>
+              <MuiButton variant="outline">Registrieren</MuiButton>
             </Link>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function Home() {
         <div className="mb-6">
           <Title text="Dashboard" className="mb-6" />
 
-          <FilterTabs statusCounts={statusCounts} totalCount={totalCount} />
+          <MuiFilterTabs statusCounts={statusCounts} totalCount={totalCount} />
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
@@ -177,7 +177,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
 
-              <Button
+              <MuiButton
                 variant="outline"
                 size="sm"
                 onClick={() => refresh()}
@@ -198,10 +198,10 @@ export default function Home() {
                   />
                 </svg>
                 Aktualisieren
-              </Button>
+              </MuiButton>
 
               <Link href="/jobs/add">
-                <Button variant="primary">
+                <MuiButton variant="primary">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5 mr-1"
@@ -217,7 +217,7 @@ export default function Home() {
                     />
                   </svg>
                   Neue Bewerbung
-                </Button>
+                </MuiButton>
               </Link>
             </div>
           </div>

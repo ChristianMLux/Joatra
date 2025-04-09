@@ -1,21 +1,46 @@
+"use client";
+
+import { Chip } from "@mui/material";
 import { StatusBadgeProps } from "@/lib/types";
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
-  const statusClasses = {
-    Beworben: "status-applied",
-    Interview: "status-interview",
-    Abgelehnt: "status-rejected",
-    Angenommen: "status-accepted",
+type ChipColorType =
+  | "default"
+  | "primary"
+  | "secondary"
+  | "error"
+  | "info"
+  | "success"
+  | "warning";
+
+export default function MuiStatusBadge({ status }: StatusBadgeProps) {
+  const getChipProps = (): { color: ChipColorType; label: string } => {
+    switch (status) {
+      case "Beworben":
+        return { color: "warning", label: "Beworben" };
+      case "Interview":
+        return { color: "info", label: "Interview" };
+      case "Abgelehnt":
+        return { color: "error", label: "Abgelehnt" };
+      case "Angenommen":
+        return { color: "success", label: "Angenommen" };
+      default:
+        return { color: "default", label: status };
+    }
   };
 
+  const { color, label } = getChipProps();
+
   return (
-    <span
-      className={
-        statusClasses[status] ||
-        "bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-medium"
-      }
-    >
-      {status}
-    </span>
+    <Chip
+      color={color}
+      label={label}
+      size="small"
+      sx={{
+        fontWeight: 500,
+        borderRadius: "4px",
+        height: "auto",
+        padding: "4px 0",
+      }}
+    />
   );
 }

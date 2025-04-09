@@ -3,7 +3,7 @@
 import AuthCheck from "@/components/auth/AuthCheck";
 import RecruiterForm from "@/components/recruiters/RecruiterForm";
 import { useParams } from "next/navigation";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import { useAuth } from "@/providers/AuthProvider";
 
 export default function EditRecruiterPage() {

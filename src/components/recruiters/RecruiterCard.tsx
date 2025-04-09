@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { deleteRecruiter } from "@/lib/firebase/firebase";
 import toast from "react-hot-toast";
 import { RecruiterCardProps } from "@/lib/types";
-import Button from "@/components/ui/Button";
+import MuiButton from "@/components/ui/Button";
 
 export default function RecruiterCard({
   recruiter,
@@ -56,28 +56,28 @@ export default function RecruiterCard({
       )}
 
       <div className="flex justify-end space-x-2 mt-4">
-        <Button
+        <MuiButton
           variant="outline"
           size="sm"
           onClick={() => router.push(`/recruiters/${recruiter.id}`)}
         >
           Details
-        </Button>
-        <Button
+        </MuiButton>
+        <MuiButton
           variant="outline"
           size="sm"
           onClick={() => router.push(`/recruiters/${recruiter.id}/edit`)}
         >
           Bearbeiten
-        </Button>
-        <Button
+        </MuiButton>
+        <MuiButton
           variant="danger"
           size="sm"
           onClick={handleDelete}
           disabled={isDeleting}
         >
           {isDeleting ? "Wird gelöscht..." : "Löschen"}
-        </Button>
+        </MuiButton>
       </div>
     </div>
   );

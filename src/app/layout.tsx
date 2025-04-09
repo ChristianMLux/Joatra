@@ -7,6 +7,10 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Metadata } from "next";
 
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import theme from "@/theme";
+
 export const metadata: Metadata = {
   title: "Job Tracker",
   description: "Behalte den Überblick über deine Bewerbungen",
@@ -19,16 +23,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="de">
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
+      </head>
       <body className="flex flex-col min-h-screen">
         <AuthProvider>
           <JobsProvider>
             <RecruitersProvider>
-              <Header />
-              <main className="container mx-auto px-4 py-6 flex-grow">
-                {children}
-              </main>
-              <Toaster position="bottom-right" />
-              <Footer />
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <Header />
+                <main className="container mx-auto px-4 py-6 flex-grow">
+                  {children}
+                </main>
+                <Toaster position="bottom-right" />
+                <Footer />
+              </ThemeProvider>
             </RecruitersProvider>
           </JobsProvider>
         </AuthProvider>

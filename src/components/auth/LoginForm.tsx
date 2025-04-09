@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginWithEmail } from "@/lib/firebase/firebase";
+import MuiButton from "@/components/ui/Button";
 import toast from "react-hot-toast";
 
 export default function LoginForm() {
@@ -74,13 +75,13 @@ export default function LoginForm() {
           />
         </div>
 
-        <button
+        <MuiButton
           type="submit"
           className="btn-primary w-full mt-4"
           disabled={loading}
         >
           {loading ? "Wird angemeldet..." : "Anmelden"}
-        </button>
+        </MuiButton>
       </form>
 
       <div className="mt-4 text-center text-sm">

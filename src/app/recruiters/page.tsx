@@ -5,9 +5,9 @@ import AuthCheck from "@/components/auth/AuthCheck";
 import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRecruiters } from "@/providers/RecruitersProvider";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import Title from "@/components/ui/Title";
-import Button from "@/components/ui/Button";
+import MuiButton from "@/components/ui/Button";
 import RecruiterList from "@/components/recruiters/RecruiterList";
 import { getJobsByRecruiter } from "@/lib/firebase/firebase";
 
@@ -49,7 +49,7 @@ export default function RecruitersPage() {
           <div className="flex justify-between items-center mb-6">
             <Title text="Vermittler" className="mb-2" />
             <Link href="/recruiters/add">
-              <Button variant="primary">
+              <MuiButton variant="primary">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5 mr-1"
@@ -65,7 +65,7 @@ export default function RecruitersPage() {
                   />
                 </svg>
                 Neuer Vermittler
-              </Button>
+              </MuiButton>
             </Link>
           </div>
 

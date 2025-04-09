@@ -3,7 +3,7 @@
 import AuthCheck from "@/components/auth/AuthCheck";
 import JobForm from "@/components/jobs/JobForm";
 import { useParams } from "next/navigation";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import { useAuth } from "@/providers/AuthProvider";
 
 export default function EditJobPage() {

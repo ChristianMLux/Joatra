@@ -8,8 +8,8 @@ import { useAuth } from "@/providers/AuthProvider";
 import { doc, getDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { JobFormProps, Job } from "@/lib/types";
-import LoadingSpinner from "@/components/layout/LoadingSpinner";
-import Button from "@/components/ui/Button";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
+import MuiButton from "@/components/ui/Button";
 import Title from "@/components/ui/Title";
 import { useJobs } from "@/lib/hooks/hooks";
 import { useRecruiters } from "@/providers/RecruitersProvider";
@@ -528,9 +528,13 @@ export default function JobForm({ jobId }: JobFormProps) {
               className="input-field"
               placeholder="z.B. React, TypeScript, Node.js"
             />
-            <Button type="button" variant="secondary" onClick={handleAddTech}>
+            <MuiButton
+              type="button"
+              variant="secondary"
+              onClick={handleAddTech}
+            >
               Hinzufügen
-            </Button>
+            </MuiButton>
           </div>
 
           {formData.techStack && formData.techStack.length > 0 ? (
@@ -541,7 +545,7 @@ export default function JobForm({ jobId }: JobFormProps) {
                   className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-sm"
                 >
                   {tech}
-                  <button
+                  <MuiButton
                     type="button"
                     className="ml-1 text-blue-600 hover:text-blue-800"
                     onClick={() => handleRemoveTech(index)}
@@ -560,7 +564,7 @@ export default function JobForm({ jobId }: JobFormProps) {
                         d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
-                  </button>
+                  </MuiButton>
                 </div>
               ))}
             </div>
@@ -606,12 +610,16 @@ export default function JobForm({ jobId }: JobFormProps) {
         </div>
 
         <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <MuiButton
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+          >
             Abbrechen
-          </Button>
-          <Button type="submit" variant="primary" isLoading={loading}>
+          </MuiButton>
+          <MuiButton type="submit" variant="primary" isLoading={loading}>
             {jobId ? "Aktualisieren" : "Hinzufügen"}
-          </Button>
+          </MuiButton>
         </div>
       </form>
     </div>

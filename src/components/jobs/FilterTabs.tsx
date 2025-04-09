@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Chip, Box } from "@mui/material";
 
 interface FilterTabProps {
   label: string;
@@ -19,35 +20,49 @@ const FilterTab: React.FC<FilterTabProps> = ({
   onClick,
 }) => {
   return (
-    <button
-      className={`
-        flex items-center justify-center flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all
-        ${
-          isActive
-            ? "bg-blue-600 text-white shadow-md transform scale-105"
-            : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-        }
-      `}
+    <Button
+      variant={isActive ? "contained" : "outlined"}
+      color={isActive ? "primary" : "secondary"}
       onClick={() => onClick(value)}
+      fullWidth
+      sx={{
+        py: 1.5,
+        borderRadius: 2,
+        transform: isActive ? "scale(1.05)" : "scale(1)",
+        transition: "transform 0.2s",
+        justifyContent: "center",
+        "&:hover": {
+          transform: isActive ? "scale(1.05)" : "scale(1.02)",
+        },
+      }}
     >
-      <span>{label}</span>
+      {label}
       {count !== undefined && (
-        <span
-          className={`ml-2 px-2 py-0.5 text-xs rounded-full ${isActive ? "bg-white text-blue-600" : "bg-gray-100 text-gray-600"}`}
-        >
-          {count}
-        </span>
+        <Chip
+          label={count}
+          size="small"
+          color={isActive ? "default" : "secondary"}
+          sx={{
+            ml: 1,
+            backgroundColor: isActive ? "white" : "rgba(0, 0, 0, 0.08)",
+            color: isActive ? "primary.main" : "text.secondary",
+            fontWeight: "medium",
+            fontSize: "0.75rem",
+            height: "20px",
+            minWidth: "20px",
+          }}
+        />
       )}
-    </button>
+    </Button>
   );
 };
 
-interface FilterTabsProps {
+interface MuiFilterTabsProps {
   statusCounts: Record<string, number>;
   totalCount: number;
 }
 
-export const FilterTabs: React.FC<FilterTabsProps> = ({
+export const MuiFilterTabs: React.FC<MuiFilterTabsProps> = ({
   statusCounts,
   totalCount,
 }) => {
@@ -68,37 +83,52 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-4 gap-4 mb-6">
-      <FilterTab
-        label="Alle"
-        value="all"
-        count={totalCount}
-        isActive={currentStatus === "all"}
-        onClick={handleFilterChange}
-      />
-      <FilterTab
-        label="Offen"
-        value="Beworben"
-        count={statusCounts["Beworben"] || 0}
-        isActive={currentStatus === "Beworben"}
-        onClick={handleFilterChange}
-      />
-      <FilterTab
-        label="Abgelehnt"
-        value="Abgelehnt"
-        count={statusCounts["Abgelehnt"] || 0}
-        isActive={currentStatus === "Abgelehnt"}
-        onClick={handleFilterChange}
-      />
-      <FilterTab
-        label="Angenommen"
-        value="Angenommen"
-        count={statusCounts["Angenommen"] || 0}
-        isActive={currentStatus === "Angenommen"}
-        onClick={handleFilterChange}
-      />
-    </div>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: "repeat(4, 1fr)",
+        gap: 2,
+        mb: 3,
+      }}
+    >
+      <Box>
+        <FilterTab
+          label="Alle"
+          value="all"
+          count={totalCount}
+          isActive={currentStatus === "all"}
+          onClick={handleFilterChange}
+        />
+      </Box>
+      <Box>
+        <FilterTab
+          label="Offen"
+          value="Beworben"
+          count={statusCounts["Beworben"] || 0}
+          isActive={currentStatus === "Beworben"}
+          onClick={handleFilterChange}
+        />
+      </Box>
+      <Box>
+        <FilterTab
+          label="Abgelehnt"
+          value="Abgelehnt"
+          count={statusCounts["Abgelehnt"] || 0}
+          isActive={currentStatus === "Abgelehnt"}
+          onClick={handleFilterChange}
+        />
+      </Box>
+      <Box>
+        <FilterTab
+          label="Angenommen"
+          value="Angenommen"
+          count={statusCounts["Angenommen"] || 0}
+          isActive={currentStatus === "Angenommen"}
+          onClick={handleFilterChange}
+        />
+      </Box>
+    </Box>
   );
 };
 
-export default FilterTabs;
+export default MuiFilterTabs;
