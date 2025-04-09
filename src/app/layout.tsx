@@ -12,7 +12,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import theme from "@/theme";
 
 export const metadata: Metadata = {
-  title: "Job Tracker",
+  title: "Joatra",
   description: "Behalte den Überblick über deine Bewerbungen",
 };
 

@@ -11,6 +11,7 @@ import Title from "@/components/ui/Title";
 import MuiFilterTabs from "@/components/jobs/FilterTabs";
 import ViewToggle from "@/components/jobs/ViewToggle";
 import MuiButton from "@/components/ui/Button";
+import PdfExportButton from "@/components/jobs/PdfExportButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job } from "@/lib/types";
 
@@ -176,7 +177,7 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
-
+              <PdfExportButton jobs={sortedJobs} />
               <MuiButton
                 variant="outline"
                 size="sm"
