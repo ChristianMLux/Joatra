@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addJob, updateJob, db } from "@/lib/firebase/firebase";
+import { addJob, updateJob, db, getRecruiter } from "@/lib/firebase/firebase";
 import { useAuth } from "@/providers/AuthProvider";
 import { doc, getDoc } from "firebase/firestore";
 import toast from "react-hot-toast";
@@ -11,11 +12,13 @@ import LoadingSpinner from "@/components/layout/LoadingSpinner";
 import Button from "@/components/ui/Button";
 import Title from "@/components/ui/Title";
 import { useJobs } from "@/lib/hooks/hooks";
+import { useRecruiters } from "@/providers/RecruitersProvider";
 
 export default function JobForm({ jobId }: JobFormProps) {
   const { user } = useAuth();
   const router = useRouter();
   const { refresh } = useJobs();
+  const { recruiters } = useRecruiters();
   const [loading, setLoading] = useState(false);
   const [loadingJob, setLoadingJob] = useState(!!jobId);
   const [techInput, setTechInput] = useState("");
@@ -32,7 +35,33 @@ export default function JobForm({ jobId }: JobFormProps) {
     techStack: [],
     contactPerson: { name: "", email: "", phone: "", position: "" },
     rejectionReason: "",
+    recruiterId: "",
+    recruiterName: "",
   });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const recruiterId = searchParams.get("recruiterId");
+
+    if (recruiterId) {
+      const fetchRecruiterName = async () => {
+        try {
+          const recruiter = await getRecruiter(recruiterId);
+          if (recruiter) {
+            setFormData((prev) => ({
+              ...prev,
+              recruiterId,
+              recruiterName: recruiter.name,
+            }));
+          }
+        } catch (error) {
+          console.error("Fehler beim Laden des Vermittlers:", error);
+        }
+      };
+
+      fetchRecruiterName();
+    }
+  }, []);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -88,6 +117,10 @@ export default function JobForm({ jobId }: JobFormProps) {
               },
               rejectionReason: jobData.rejectionReason || "",
             };
+            if (jobData.recruiterId) {
+              formattedJob.recruiterId = jobData.recruiterId;
+              formattedJob.recruiterName = jobData.recruiterName || "";
+            }
 
             setFormData(formattedJob);
           } else {
@@ -232,6 +265,54 @@ export default function JobForm({ jobId }: JobFormProps) {
                 placeholder="z.B. Frontend Entwickler"
                 required
               />
+            </div>
+          </div>
+
+          <div className="mb-6 border-t border-gray-200 pt-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Vermittler (optional)
+            </h2>
+
+            <div className="form-group">
+              <label htmlFor="recruiterId" className="form-label">
+                Wurde dir diese Stelle von einem Vermittler angeboten?
+              </label>
+              <select
+                id="recruiterId"
+                name="recruiterId"
+                value={formData.recruiterId || ""}
+                onChange={(e) => {
+                  const recruiterId = e.target.value;
+                  const selectedRecruiter = recruiters.find(
+                    (r) => r.id === recruiterId
+                  );
+                  setFormData((prev) => ({
+                    ...prev,
+                    recruiterId,
+                    recruiterName: selectedRecruiter
+                      ? selectedRecruiter.name
+                      : "",
+                  }));
+                }}
+                className="input-field"
+              >
+                <option value="">Keinem Vermittler zugeordnet</option>
+                {recruiters.map((recruiter) => (
+                  <option key={recruiter.id} value={recruiter.id}>
+                    {recruiter.name}{" "}
+                    {recruiter.company ? `(${recruiter.company})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-2 text-sm">
+              <Link
+                href="/recruiters/add"
+                className="text-blue-600 hover:underline"
+              >
+                Neuen Vermittler hinzufügen
+              </Link>
             </div>
           </div>
 

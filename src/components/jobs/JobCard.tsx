@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { updateJob, deleteJob } from "@/lib/firebase/firebase";
 import StatusBadge from "./StatusBadge";
@@ -287,6 +288,22 @@ export default function JobCard({ job, onJobUpdate, viewMode }: JobCardProps) {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {job.recruiterId && job.recruiterName && (
+          <div className="mt-3">
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              Vermittelt durch:
+            </p>
+            <p className="text-gray-700">
+              <Link
+                href={`/recruiters/${job.recruiterId}`}
+                className="text-blue-600 hover:underline"
+              >
+                {job.recruiterName}
+              </Link>
+            </p>
           </div>
         )}
 

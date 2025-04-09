@@ -10,6 +10,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  getDoc,
   query,
   where,
   getDocs,
@@ -20,9 +21,8 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
-import { Job } from "../types";
+import { Job, Recruiter } from "../types";
 
-// Firebase-Konfiguration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -33,13 +33,11 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Firebase initialisieren
 const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Authentifizierungsfunktionen
 export const loginWithEmail = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
@@ -52,12 +50,10 @@ export const logout = async () => {
   return signOut(auth);
 };
 
-// Firestore Funktionen für Jobs
 export const addJob = async (
   userId: string,
   jobData: Omit<Job, "id" | "userId" | "createdAt" | "updatedAt">
 ) => {
-  // Hilffunktion zum Bereinigen von undefined-Werten, ersetzt sie durch null
   const sanitizeData = (obj: any): any => {
     if (obj === undefined) return null;
     if (obj === null || typeof obj !== "object") return obj;
@@ -69,14 +65,12 @@ export const addJob = async (
     const sanitized: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-      // Rekursiv verschachtelte Objekte bereinigen
       sanitized[key] = sanitizeData(value);
     }
 
     return sanitized;
   };
 
-  // Jobdaten bereinigen, bevor sie an Firestore gesendet werden
   const sanitizedJobData = sanitizeData(jobData);
 
   return addDoc(collection(db, "jobs"), {
@@ -107,30 +101,27 @@ export const getJobs = async (userId: string): Promise<Job[]> => {
   return jobs;
 };
 
+const sanitizeData = (obj: any): any => {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeData(item));
+  }
+
+  const sanitized: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    sanitized[key] = sanitizeData(value);
+  }
+
+  return sanitized;
+};
+
 export const updateJob = async (
   jobId: string,
   jobData: Partial<Omit<Job, "id" | "userId" | "createdAt" | "updatedAt">>
 ) => {
-  // Hilffunktion zum Bereinigen von undefined-Werten, ersetzt sie durch null
-  const sanitizeData = (obj: any): any => {
-    if (obj === undefined) return null;
-    if (obj === null || typeof obj !== "object") return obj;
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => sanitizeData(item));
-    }
-
-    const sanitized: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      // Rekursiv verschachtelte Objekte bereinigen
-      sanitized[key] = sanitizeData(value);
-    }
-
-    return sanitized;
-  };
-
-  // Jobdaten bereinigen, bevor sie an Firestore gesendet werden
   const sanitizedJobData = sanitizeData(jobData);
 
   const jobRef = doc(db, "jobs", jobId);
@@ -145,6 +136,99 @@ export const deleteJob = async (jobId: string) => {
   return deleteDoc(jobRef);
 };
 
-// Auth Status
+export const addRecruiter = async (
+  userId: string,
+  recruiterData: Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
+) => {
+  const sanitizedData = sanitizeData(recruiterData);
+
+  return addDoc(collection(db, "recruiters"), {
+    ...sanitizedData,
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const getRecruiters = async (userId: string): Promise<Recruiter[]> => {
+  const q = query(
+    collection(db, "recruiters"),
+    where("userId", "==", userId),
+    orderBy("name", "asc")
+  );
+
+  const querySnapshot = await getDocs(q);
+  const recruiters: Recruiter[] = [];
+
+  querySnapshot.forEach((doc) => {
+    recruiters.push({
+      id: doc.id,
+      ...doc.data(),
+    } as Recruiter);
+  });
+
+  return recruiters;
+};
+
+export const getRecruiter = async (
+  recruiterId: string
+): Promise<Recruiter | null> => {
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  const recruiterSnap = await getDoc(recruiterRef);
+
+  if (recruiterSnap.exists()) {
+    return {
+      id: recruiterSnap.id,
+      ...recruiterSnap.data(),
+    } as Recruiter;
+  }
+
+  return null;
+};
+
+export const updateRecruiter = async (
+  recruiterId: string,
+  recruiterData: Partial<
+    Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
+  >
+) => {
+  const sanitizedData = sanitizeData(recruiterData);
+
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  return updateDoc(recruiterRef, {
+    ...sanitizedData,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const deleteRecruiter = async (recruiterId: string) => {
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  return deleteDoc(recruiterRef);
+};
+
+export const getJobsByRecruiter = async (
+  userId: string,
+  recruiterId: string
+): Promise<Job[]> => {
+  const q = query(
+    collection(db, "jobs"),
+    where("userId", "==", userId),
+    where("recruiterId", "==", recruiterId),
+    orderBy("applicationDate", "desc")
+  );
+
+  const querySnapshot = await getDocs(q);
+  const jobs: Job[] = [];
+
+  querySnapshot.forEach((doc) => {
+    jobs.push({
+      id: doc.id,
+      ...doc.data(),
+    } as Job);
+  });
+
+  return jobs;
+};
+
 export { auth };
 export { db };

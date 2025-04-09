@@ -40,7 +40,7 @@ export default function Header() {
 
             {/* Main Navigation */}
             {!loading && user && (
-              <nav className="hidden md:flex space-x-6">
+              <nav className="flex justify-between space-x-6">
                 <Link
                   href="/"
                   className={`font-medium ${
@@ -50,6 +50,17 @@ export default function Header() {
                   }`}
                 >
                   Dashboard
+                </Link>
+                <Link
+                  href="/recruiters"
+                  className={`font-medium ${
+                    pathname === "/recruiters" ||
+                    pathname.startsWith("/recruiters/")
+                      ? "text-blue-600 border-b-2 border-blue-600 pb-1"
+                      : "text-gray-600 hover:text-blue-600"
+                  }`}
+                >
+                  Vermittler
                 </Link>
                 <Link
                   href="/stats"

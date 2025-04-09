@@ -26,11 +26,20 @@ export interface Job {
     position?: string;
   };
   rejectionReason?: string;
+  recruiterId?: string;
+  recruiterName?: string;
 }
 
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
+}
+
+export interface RecruitersContextType {
+  recruiters: Recruiter[];
+  setRecruiters: React.Dispatch<React.SetStateAction<Recruiter[]>>;
+  loading: boolean;
+  refresh: () => Promise<void>;
 }
 
 export interface JobsContextType {
@@ -70,4 +79,28 @@ export interface ViewToggleProps {
 export interface FilterTabsProps {
   statusCounts: Record<string, number>;
   totalCount: number;
+}
+
+export interface RecruiterFormProps {
+  recruiterId?: string;
+}
+
+export interface RecruiterCardProps {
+  recruiter: Recruiter;
+  onRecruiterUpdate: () => void;
+  jobCount?: number;
+}
+
+export interface RecruiterDetailProps {
+  recruiterId: string;
+}
+
+export interface Recruiter {
+  id?: string;
+  name: string;
+  company?: string;
+  notes?: string;
+  userId: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
