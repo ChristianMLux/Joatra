@@ -24,7 +24,7 @@ import {
   Tabs,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function MuiHeader() {
   const { user, loading } = useAuth();
@@ -32,6 +32,12 @@ export default function MuiHeader() {
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -58,6 +64,14 @@ export default function MuiHeader() {
     setAnchorEl(null);
   };
 
+  const getCurrentTabValue = () => {
+    if (pathname === "/") return "/";
+    if (pathname.startsWith("/cv-generator")) return "/cv-generator";
+    if (pathname.startsWith("/recruiters")) return "/recruiters";
+    if (pathname.startsWith("/stats")) return "/stats";
+    return false;
+  };
+
   return (
     <AppBar
       position="static"
@@ -67,7 +81,6 @@ export default function MuiHeader() {
     >
       <Container maxWidth="lg">
         <Toolbar disableGutters sx={{ justifyContent: "space-between" }}>
-          {/* Logo und Navigation */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Typography
               variant="h5"
@@ -84,41 +97,58 @@ export default function MuiHeader() {
               Joatra
             </Typography>
 
-            {!loading && user && (
+            {isClient && !loading && user && (
               <Tabs
-                value={pathname}
+                value={getCurrentTabValue()}
                 sx={{
                   "& .MuiTab-root": {
                     minWidth: "auto",
                     fontWeight: "medium",
                     px: 2,
                   },
+                  minHeight: "48px",
                 }}
               >
-                <Tab label="Dashboard" value="/" component={Link} href="/" />
+                <Tab
+                  label="Dashboard"
+                  value="/"
+                  component={Link}
+                  href="/"
+                  id="tab-dashboard"
+                />
+                <Tab
+                  label="CV-Generator"
+                  value="/cv-generator"
+                  component={Link}
+                  href="/cv-generator"
+                  id="tab-cv-generator"
+                />
                 <Tab
                   label="Vermittler"
-                  value={
-                    pathname.startsWith("/recruiters")
-                      ? "/recruiters"
-                      : undefined
-                  }
+                  value="/recruiters"
                   component={Link}
                   href="/recruiters"
+                  id="tab-recruiters"
                 />
                 <Tab
                   label="Statistiken"
                   value="/stats"
                   component={Link}
                   href="/stats"
+                  id="tab-stats"
                 />
               </Tabs>
             )}
           </Box>
 
-          {/* Benutzeraktionen */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {!loading && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              minHeight: "40px",
+            }}
+          >
+            {isClient && !loading && (
               <>
                 {user ? (
                   <>
@@ -141,6 +171,7 @@ export default function MuiHeader() {
                         aria-controls={open ? "account-menu" : undefined}
                         aria-haspopup="true"
                         aria-expanded={open ? "true" : undefined}
+                        id="account-button"
                       >
                         <Avatar
                           sx={{
@@ -193,6 +224,7 @@ export default function MuiHeader() {
                 )}
               </>
             )}
+            {(!isClient || loading) && <Box sx={{ width: "180px" }}></Box>}
           </Box>
         </Toolbar>
       </Container>

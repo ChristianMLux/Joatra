@@ -20,8 +20,9 @@ import {
   orderBy,
   serverTimestamp,
   Timestamp,
+  limit,
 } from "firebase/firestore";
-import { Job, Recruiter } from "../types";
+import { Job, Recruiter, UserProfile, CVTemplate, GeneratedCV } from "../types";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -228,6 +229,166 @@ export const getJobsByRecruiter = async (
   });
 
   return jobs;
+};
+
+export const createUserProfile = async (
+  userId: string,
+  profileData: Omit<UserProfile, "id" | "userId" | "createdAt" | "updatedAt">
+) => {
+  const sanitizedData = sanitizeData(profileData);
+
+  return addDoc(collection(db, "profiles"), {
+    ...sanitizedData,
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const getUserProfile = async (
+  userId: string
+): Promise<UserProfile | null> => {
+  const q = query(
+    collection(db, "profiles"),
+    where("userId", "==", userId),
+    limit(1)
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    return null;
+  }
+
+  const profileDoc = querySnapshot.docs[0];
+
+  return {
+    id: profileDoc.id,
+    ...profileDoc.data(),
+  } as UserProfile;
+};
+
+export const updateUserProfile = async (
+  profileId: string,
+  profileData: Partial<
+    Omit<UserProfile, "id" | "userId" | "createdAt" | "updatedAt">
+  >
+) => {
+  const sanitizedData = sanitizeData(profileData);
+
+  const profileRef = doc(db, "profiles", profileId);
+  return updateDoc(profileRef, {
+    ...sanitizedData,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// CV-Templates
+
+export const getCVTemplates = async (): Promise<CVTemplate[]> => {
+  const q = query(collection(db, "cvTemplates"));
+  const querySnapshot = await getDocs(q);
+
+  const templates: CVTemplate[] = [];
+
+  querySnapshot.forEach((doc) => {
+    templates.push({
+      id: doc.id,
+      ...doc.data(),
+    } as CVTemplate);
+  });
+
+  return templates;
+};
+
+export const getCVTemplate = async (
+  templateId: string
+): Promise<CVTemplate | null> => {
+  const templateRef = doc(db, "cvTemplates", templateId);
+  const templateSnap = await getDoc(templateRef);
+
+  if (templateSnap.exists()) {
+    return {
+      id: templateSnap.id,
+      ...templateSnap.data(),
+    } as CVTemplate;
+  }
+
+  return null;
+};
+
+// Generierte CVs
+
+export const createGeneratedCV = async (
+  userId: string,
+  cvData: Omit<GeneratedCV, "id" | "userId" | "createdAt" | "updatedAt">
+) => {
+  const sanitizedData = sanitizeData(cvData);
+
+  return addDoc(collection(db, "generatedCVs"), {
+    ...sanitizedData,
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const getGeneratedCVs = async (
+  userId: string
+): Promise<GeneratedCV[]> => {
+  const q = query(
+    collection(db, "generatedCVs"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+
+  const querySnapshot = await getDocs(q);
+  const cvs: GeneratedCV[] = [];
+
+  querySnapshot.forEach((doc) => {
+    cvs.push({
+      id: doc.id,
+      ...doc.data(),
+    } as GeneratedCV);
+  });
+
+  return cvs;
+};
+
+export const getGeneratedCV = async (
+  cvId: string
+): Promise<GeneratedCV | null> => {
+  const cvRef = doc(db, "generatedCVs", cvId);
+  const cvSnap = await getDoc(cvRef);
+
+  if (cvSnap.exists()) {
+    return {
+      id: cvSnap.id,
+      ...cvSnap.data(),
+    } as GeneratedCV;
+  }
+
+  return null;
+};
+
+export const updateGeneratedCV = async (
+  cvId: string,
+  cvData: Partial<
+    Omit<GeneratedCV, "id" | "userId" | "createdAt" | "updatedAt">
+  >
+) => {
+  const sanitizedData = sanitizeData(cvData);
+
+  const cvRef = doc(db, "generatedCVs", cvId);
+  return updateDoc(cvRef, {
+    ...sanitizedData,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const deleteGeneratedCV = async (cvId: string) => {
+  const cvRef = doc(db, "generatedCVs", cvId);
+  return deleteDoc(cvRef);
 };
 
 export { auth };

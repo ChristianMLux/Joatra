@@ -104,3 +104,130 @@ export interface Recruiter {
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }
+
+export interface Education {
+  id?: string;
+  institution: string;
+  degree: string;
+  field: string;
+  startDate: string | number;
+  endDate?: string | number;
+  location?: string;
+  description?: string;
+  ongoing?: boolean;
+}
+
+export interface Experience {
+  id?: string;
+  company: string;
+  position: string;
+  startDate: string | number;
+  endDate?: string | number;
+  location?: string;
+  description?: string;
+  highlights?: string[];
+  ongoing?: boolean;
+}
+
+export interface Skill {
+  id?: string;
+  name: string;
+  level?: "Grundkenntnisse" | "Gut" | "Sehr gut" | "Experte";
+  category?: "Technical" | "Soft" | "Language" | "Other";
+}
+
+export interface Language {
+  name: string;
+  level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "Muttersprache";
+}
+
+export interface Certificate {
+  id?: string;
+  name: string;
+  issuer: string;
+  date: string | Date | Timestamp;
+  description?: string;
+}
+
+export interface PersonalDetails {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  birthDate?: string | Date | Timestamp;
+  birthPlace?: string;
+  nationality?: string;
+  photo?: string;
+  website?: string;
+  linkedin?: string;
+  xing?: string;
+  github?: string;
+}
+
+export interface UserProfile {
+  id?: string;
+  userId: string;
+  personalDetails: PersonalDetails;
+  summary?: string;
+  education: Education[];
+  experience: Experience[];
+  skills: Skill[];
+  languages: Language[];
+  certificates?: Certificate[];
+  interests?: string[];
+  additionalInfo?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface CVTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: "de" | "en";
+  type: "standard" | "modern" | "academic" | "creative";
+  atsOptimized: boolean;
+  photoIncluded: boolean;
+}
+
+export interface GeneratedCV {
+  id?: string;
+  userId: string;
+  jobId?: string;
+  profileId: string;
+  templateId: string;
+  content: any;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+export interface CVGeneratorProps {
+  jobId?: string;
+  templateId?: string;
+}
+
+export interface CVTemplatePreviewProps {
+  template: CVTemplate;
+  profile: UserProfile;
+  job?: Job;
+  selected: boolean;
+  onSelect: (templateId: string) => void;
+}
+
+export interface CVFormProps {
+  profile: UserProfile;
+  onUpdate: (profile: UserProfile) => void;
+}
+
+export interface CVPreviewProps {
+  cv: GeneratedCV;
+  profile: UserProfile;
+  job?: Job;
+  template: CVTemplate;
+  onEdit: () => void;
+  onDownload: () => void;
+}
