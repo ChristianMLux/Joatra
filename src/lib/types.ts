@@ -13,6 +13,9 @@ export interface Job {
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   location?: string;
+  companyStreet?: string;
+  companyPostalCode?: string;
+  companyCity?: string;
   salary?: {
     min?: number;
     max?: number;
@@ -230,4 +233,25 @@ export interface CVPreviewProps {
   template: CVTemplate;
   onEdit: () => void;
   onDownload: () => void;
+}
+
+export interface CoverLetterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: "de" | "en";
+  style: "formal" | "modern" | "creative";
+  atsOptimized: boolean;
+  din5008Compliant?: boolean;
+}
+
+export interface GeneratedCoverLetter {
+  id?: string;
+  userId: string;
+  jobId?: string;
+  profileId: string;
+  templateId: string;
+  content: any;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }

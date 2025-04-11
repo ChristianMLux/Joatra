@@ -124,6 +124,13 @@ export default function MuiHeader() {
                   id="tab-cv-generator"
                 />
                 <Tab
+                  label="Cover-Letter-Generator"
+                  value="/cover-letter-generator"
+                  component={Link}
+                  href="/cover-letter-generator"
+                  id="tab-cover-letter-generator"
+                />
+                <Tab
                   label="Vermittler"
                   value="/recruiters"
                   component={Link}

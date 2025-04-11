@@ -391,5 +391,179 @@ export const deleteGeneratedCV = async (cvId: string) => {
   return deleteDoc(cvRef);
 };
 
+interface CoverLetterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: "de" | "en";
+  style: "formal" | "modern" | "creative";
+  atsOptimized: boolean;
+  din5008Compliant?: boolean;
+}
+
+// Define generated cover letter interface
+interface GeneratedCoverLetter {
+  id?: string;
+  userId: string;
+  jobId?: string;
+  profileId: string;
+  templateId: string;
+  content: any;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+// Function to get cover letter templates
+export const getCoverLetterTemplates = async (): Promise<
+  CoverLetterTemplate[]
+> => {
+  const q = query(collection(db, "coverLetterTemplates"));
+  const querySnapshot = await getDocs(q);
+  const templates: CoverLetterTemplate[] = [];
+  querySnapshot.forEach((doc) => {
+    templates.push({
+      id: doc.id,
+      ...doc.data(),
+    } as CoverLetterTemplate);
+  });
+  console.log("Fetched Cover Letter Templates:", templates);
+  if (templates.length === 0) {
+    console.warn("No cover letter templates found in Firestore!");
+  }
+  return templates;
+};
+
+// Function to get a specific cover letter template
+export const getCoverLetterTemplate = async (
+  templateId: string
+): Promise<CoverLetterTemplate | null> => {
+  const templateRef = doc(db, "coverLetterTemplates", templateId);
+  const templateSnap = await getDoc(templateRef);
+
+  if (templateSnap.exists()) {
+    return {
+      id: templateSnap.id,
+      ...templateSnap.data(),
+    } as CoverLetterTemplate;
+  }
+
+  return null;
+};
+
+// Function to create a generated cover letter
+export const createGeneratedCoverLetter = async (
+  userId: string,
+  coverLetterData: Omit<
+    GeneratedCoverLetter,
+    "id" | "userId" | "createdAt" | "updatedAt"
+  >
+) => {
+  // Helper function to sanitize data for Firestore
+  const sanitizeData = (obj: any): any => {
+    if (obj === undefined) return null;
+    if (obj === null || typeof obj !== "object") return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => sanitizeData(item));
+    }
+
+    const sanitized: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeData(value);
+    }
+
+    return sanitized;
+  };
+
+  const sanitizedData = sanitizeData(coverLetterData);
+
+  return addDoc(collection(db, "generatedCoverLetters"), {
+    ...sanitizedData,
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// Function to get all generated cover letters for a user
+export const getGeneratedCoverLetters = async (
+  userId: string
+): Promise<GeneratedCoverLetter[]> => {
+  const q = query(
+    collection(db, "generatedCoverLetters"),
+    where("userId", "==", userId)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const coverLetters: GeneratedCoverLetter[] = [];
+
+  querySnapshot.forEach((doc) => {
+    coverLetters.push({
+      id: doc.id,
+      ...doc.data(),
+    } as GeneratedCoverLetter);
+  });
+
+  return coverLetters;
+};
+
+// Function to get a specific generated cover letter
+export const getGeneratedCoverLetter = async (
+  coverLetterId: string
+): Promise<GeneratedCoverLetter | null> => {
+  const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
+  const coverLetterSnap = await getDoc(coverLetterRef);
+
+  if (coverLetterSnap.exists()) {
+    return {
+      id: coverLetterSnap.id,
+      ...coverLetterSnap.data(),
+    } as GeneratedCoverLetter;
+  }
+
+  return null;
+};
+
+// Function to update a generated cover letter
+export const updateGeneratedCoverLetter = async (
+  coverLetterId: string,
+  coverLetterData: Partial<
+    Omit<GeneratedCoverLetter, "id" | "userId" | "createdAt" | "updatedAt">
+  >
+) => {
+  // Helper function to sanitize data for Firestore
+  const sanitizeData = (obj: any): any => {
+    if (obj === undefined) return null;
+    if (obj === null || typeof obj !== "object") return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => sanitizeData(item));
+    }
+
+    const sanitized: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      sanitized[key] = sanitizeData(value);
+    }
+
+    return sanitized;
+  };
+
+  const sanitizedData = sanitizeData(coverLetterData);
+
+  const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
+  return updateDoc(coverLetterRef, {
+    ...sanitizedData,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+// Function to delete a generated cover letter
+export const deleteGeneratedCoverLetter = async (coverLetterId: string) => {
+  const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
+  return deleteDoc(coverLetterRef);
+};
+
 export { auth };
 export { db };

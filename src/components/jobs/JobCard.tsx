@@ -35,6 +35,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import LinkIcon from "@mui/icons-material/Link";
 import BusinessIcon from "@mui/icons-material/Business";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ArticleIcon from "@mui/icons-material/Article";
 
 const cardShadow =
   "0px 2px 4px -1px rgba(0,0,0,0.06), 0px 4px 6px -1px rgba(0,0,0,0.1)";
@@ -505,6 +507,29 @@ export default function MuiJobCard({
                 <EditIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>Bearbeiten</ListItemText>
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setMenuAnchorEl(null);
+                router.push(`/cover-letter-generator?jobId=${job.id}`);
+              }}
+            >
+              <ListItemIcon>
+                <DescriptionIcon fontSize="small" color="secondary" />
+              </ListItemIcon>
+              <ListItemText>Anschreiben generieren</ListItemText>
+            </MenuItem>
+
+            <MenuItem
+              onClick={() => {
+                setMenuAnchorEl(null);
+                router.push(`/cv-generator?jobId=${job.id}`);
+              }}
+            >
+              <ListItemIcon>
+                <ArticleIcon fontSize="small" color="info" />
+              </ListItemIcon>
+              <ListItemText>CV generieren</ListItemText>
             </MenuItem>
             <MenuItem onClick={handleDelete} disabled={isDeleting}>
               <ListItemIcon>

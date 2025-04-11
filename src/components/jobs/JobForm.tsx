@@ -31,6 +31,9 @@ export default function JobForm({ jobId }: JobFormProps) {
     status: "Beworben",
     notes: "",
     location: "",
+    companyStreet: "",
+    companyPostalCode: "",
+    companyCity: "",
     salary: { min: undefined, max: undefined, currency: "EUR" },
     techStack: [],
     contactPerson: { name: "", email: "", phone: "", position: "" },
@@ -103,6 +106,9 @@ export default function JobForm({ jobId }: JobFormProps) {
               applicationDate:
                 formattedDate || new Date().toISOString().split("T")[0],
               location: jobData.location || "",
+              companyStreet: jobData.companyStreet || "",
+              companyPostalCode: jobData.companyPostalCode || "",
+              companyCity: jobData.companyCity || "",
               salary: jobData.salary || {
                 min: undefined,
                 max: undefined,
@@ -329,6 +335,48 @@ export default function JobForm({ jobId }: JobFormProps) {
                 onChange={handleChange}
                 className="input-field"
                 placeholder="z.B. Berlin oder Remote"
+              />
+            </div>
+            <div className="form-group md:col-span-1">
+              <label htmlFor="companyStreet" className="form-label">
+                Straße
+              </label>
+              <input
+                id="companyStreet"
+                name="companyStreet"
+                type="text"
+                value={formData.companyStreet}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="z.B. Musterstraße 42"
+              />
+            </div>
+            <div className="form-group md:col-span-1">
+              <label htmlFor="companyPostalCode" className="form-label">
+                Postleitzahl
+              </label>
+              <input
+                id="companyPostalCode"
+                name="companyPostalCode"
+                type="text"
+                value={formData.companyPostalCode}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="z.B. 707070"
+              />
+            </div>
+            <div className="form-group md:col-span-1">
+              <label htmlFor="companyCity" className="form-label">
+                Stadt
+              </label>
+              <input
+                id="companyCity"
+                name="companyCity"
+                type="text"
+                value={formData.companyCity}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="z.B. Musterhausen"
               />
             </div>
 
