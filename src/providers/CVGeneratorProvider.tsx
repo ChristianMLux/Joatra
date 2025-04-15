@@ -13,7 +13,6 @@ import {
   getUserProfile,
   getCVTemplates,
   getJobs,
-  getCVTemplate,
 } from "@/lib/firebase/firebase";
 import { UserProfile, CVTemplate, Job } from "@/lib/types";
 import { generateCV } from "@/lib/cv/cvGenerator";
@@ -63,58 +62,67 @@ export function CVGeneratorProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadTemplates = async () => {
+    const loadInitialData = async () => {
+      setLoading(true);
       try {
         const templatesData = await getCVTemplates();
         setTemplates(templatesData);
-
         if (templatesData.length > 0 && !selectedTemplate) {
           setSelectedTemplate(templatesData[0]);
         }
+
+        if (user) {
+          const profileData = await getUserProfile(user.uid);
+          setProfile(profileData);
+        } else {
+          setProfile(null);
+        }
       } catch (error) {
-        console.error("Fehler beim Laden der CV-Templates:", error);
-        toast.error("CV-Templates konnten nicht geladen werden");
+        console.error("Fehler beim Laden der Initialdaten:", error);
+        toast.error("Initialdaten konnten nicht geladen werden");
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadTemplates();
-  }, [selectedTemplate]);
+    loadInitialData();
+  }, [user]);
 
   const loadProfile = useCallback(async () => {
-    if (!user) return;
-
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+    setLoading(true);
     try {
-      setLoading(true);
       const profileData = await getUserProfile(user.uid);
       setProfile(profileData);
     } catch (error) {
       console.error("Fehler beim Laden des Profils:", error);
       toast.error("Dein Profil konnte nicht geladen werden");
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
-
   const loadJob = async (jobId: string) => {
     if (!user) return;
-
+    setLoading(true);
     try {
-      setLoading(true);
-      const job = (await getJobs(user.uid)).find((j) => j.id === jobId);
+      const allJobs = await getJobs(user.uid);
+      const job = allJobs.find((j) => j.id === jobId);
 
       if (!job) {
         toast.error("Stellenanzeige konnte nicht gefunden werden");
-        return;
+        setSelectedJob(null);
+      } else {
+        setSelectedJob(job);
       }
-
-      setSelectedJob(job);
     } catch (error) {
       console.error("Fehler beim Laden der Stellenanzeige:", error);
       toast.error("Stellenanzeige konnte nicht geladen werden");
+      setSelectedJob(null);
     } finally {
       setLoading(false);
     }
@@ -124,6 +132,7 @@ export function CVGeneratorProvider({ children }: { children: ReactNode }) {
     const template = templates.find((t) => t.id === templateId);
     if (template) {
       setSelectedTemplate(template);
+      setGeneratedContent(null);
     }
   };
 
@@ -133,13 +142,16 @@ export function CVGeneratorProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setLoading(true);
+    setGeneratedContent(null);
     try {
-      setLoading(true);
-      const content = generateCV(profile, selectedJob, selectedTemplate);
+      const content = await generateCV(profile, selectedJob, selectedTemplate);
       setGeneratedContent(content);
+      toast.success("Lebenslauf erfolgreich generiert!");
     } catch (error) {
       console.error("Fehler bei der CV-Generierung:", error);
-      toast.error("Lebenslauf konnte nicht generiert werden");
+      toast.error("Lebenslauf konnte nicht generiert werden.");
+      setGeneratedContent(null);
     } finally {
       setLoading(false);
     }

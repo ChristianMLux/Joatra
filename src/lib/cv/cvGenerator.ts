@@ -8,23 +8,22 @@ import {
 } from "../types";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
+import {
+  tailorExperienceDescriptionAction,
+  tailorEducationDescriptionAction,
+} from "@/app/actions/cvActions";
 
 export const extractKeywords = (job: Job | null): string[] => {
   if (!job) return [];
-
   const keywordSources = [
     job.jobTitle,
     job.company,
     job.notes || "",
     ...(job.techStack || []),
   ].filter(Boolean);
-
   const combinedText = keywordSources.join(" ").toLowerCase();
-
   const techKeywords = extractTechKeywords(combinedText);
-
   const softSkills = extractSoftSkills(combinedText);
-
   return [...new Set([...techKeywords, ...softSkills])];
 };
 
@@ -103,7 +102,6 @@ const extractTechKeywords = (text: string): string[] => {
     "ui",
     "accessibility",
   ];
-
   return techKeywordList.filter((keyword) => text.includes(keyword));
 };
 
@@ -140,36 +138,30 @@ const extractSoftSkills = (text: string): string[] => {
     "mentoring",
     "coaching",
   ];
-
   return softSkillsList.filter((skill) => text.includes(skill));
 };
 
+// --- Sorting and Formatting Functions ---
 export const sortSkillsByRelevance = (
   skills: Skill[],
   keywords: string[]
 ): Skill[] => {
   const lowercaseKeywords = keywords.map((kw) => kw.toLowerCase());
-
   return [...skills].sort((a, b) => {
     const aIsRelevant = lowercaseKeywords.includes(a.name.toLowerCase());
     const bIsRelevant = lowercaseKeywords.includes(b.name.toLowerCase());
-
     if (aIsRelevant && !bIsRelevant) return -1;
     if (!aIsRelevant && bIsRelevant) return 1;
-
     const levels = ["Experte", "Sehr gut", "Gut", "Grundkenntnisse"];
     const aLevelIndex = levels.indexOf(a.level || "Grundkenntnisse");
     const bLevelIndex = levels.indexOf(b.level || "Grundkenntnisse");
-
     return aLevelIndex - bLevelIndex;
   });
 };
 
 export const formatDate = (date: any, language: string = "de"): string => {
   if (!date) return "";
-
   let dateObj: Date;
-
   if (typeof date === "object" && "toDate" in date) {
     dateObj = date.toDate();
   } else if (date instanceof Date) {
@@ -177,55 +169,10 @@ export const formatDate = (date: any, language: string = "de"): string => {
   } else {
     dateObj = new Date(date);
   }
-
-  if (isNaN(dateObj.getTime())) {
-    return "";
-  }
-
-  if (language === "de") {
-    return format(dateObj, "MM/yyyy", { locale: de });
-  } else {
-    return format(dateObj, "MM/yyyy");
-  }
-};
-
-export const generateCV = (
-  profile: UserProfile,
-  job: Job | null,
-  template: CVTemplate
-): any => {
-  const keywords = extractKeywords(job);
-
-  const sortedSkills = sortSkillsByRelevance(profile.skills, keywords);
-
-  const sortedExperience = [...profile.experience].sort((a, b) => {
-    const aDate = new Date(a.startDate);
-    const bDate = new Date(b.startDate);
-    return bDate.getTime() - aDate.getTime();
+  if (isNaN(dateObj.getTime())) return "";
+  return format(dateObj, "MM/yyyy", {
+    locale: language === "de" ? de : undefined,
   });
-
-  const sortedEducation = [...profile.education].sort((a, b) => {
-    const aDate = new Date(a.startDate);
-    const bDate = new Date(b.startDate);
-    return bDate.getTime() - aDate.getTime();
-  });
-
-  const content = {
-    personalDetails: profile.personalDetails,
-    summary: generateSummary(profile, job, keywords),
-    experience: sortedExperience,
-    education: sortedEducation,
-    skills: sortedSkills,
-    languages: profile.languages,
-    certificates: profile.certificates || [],
-    interests: profile.interests || [],
-    keywords: keywords,
-    templateType: template.type,
-    templateLanguage: template.language,
-    photoIncluded: template.photoIncluded,
-  };
-
-  return content;
 };
 
 const generateSummary = (
@@ -236,14 +183,12 @@ const generateSummary = (
   if (profile.summary) {
     return profile.summary;
   }
-
   const name = `${profile.personalDetails.firstName} ${profile.personalDetails.lastName}`;
   const yearsOfExperience = calculateYearsOfExperience(profile.experience);
   const topSkills = profile.skills
     .slice(0, 3)
     .map((s) => s.name)
     .join(", ");
-
   if (job) {
     return `Erfahrene(r) ${job.jobTitle} mit ${yearsOfExperience} Jahren Berufserfahrung und fundiertem Wissen in ${topSkills}. Auf der Suche nach einer neuen Herausforderung bei ${job.company}, um meine Fähigkeiten weiterzuentwickeln und zum Unternehmenserfolg beizutragen.`;
   } else {
@@ -253,21 +198,110 @@ const generateSummary = (
 
 const calculateYearsOfExperience = (experiences: Experience[]): number => {
   let totalMonths = 0;
-
   experiences.forEach((exp) => {
     const startDate = new Date(exp.startDate);
     const endDate = exp.ongoing
       ? new Date()
       : new Date(exp.endDate || new Date());
-
     const months =
       (endDate.getFullYear() - startDate.getFullYear()) * 12 +
       (endDate.getMonth() - startDate.getMonth());
-
     totalMonths += months;
   });
-
   return Math.floor(totalMonths / 12);
+};
+
+export const generateCV = async (
+  profile: UserProfile,
+  job: Job | null,
+  template: CVTemplate
+): Promise<any> => {
+  const keywords = extractKeywords(job);
+  const sortedSkills = sortSkillsByRelevance(profile.skills, keywords);
+
+  const sortedExperienceRaw = [...profile.experience].sort((a, b) => {
+    const aDate = new Date(a.startDate);
+    const bDate = new Date(b.startDate);
+    return bDate.getTime() - aDate.getTime();
+  });
+
+  const tailoredExperiencePromises = sortedExperienceRaw.map(async (exp) => {
+    if (job && exp.description) {
+      try {
+        const result = await tailorExperienceDescriptionAction({
+          experience: exp,
+          job: job,
+          language: template.language,
+        });
+        return {
+          ...exp,
+          description:
+            result.success && result.tailoredDescription
+              ? result.tailoredDescription
+              : exp.description,
+        };
+      } catch (error) {
+        console.error(
+          `Exception tailoring experience for ${exp.company}:`,
+          error
+        );
+        return exp;
+      }
+    }
+    return exp;
+  });
+  const tailoredExperience = await Promise.all(tailoredExperiencePromises);
+
+  const sortedEducationRaw = [...profile.education].sort((a, b) => {
+    const aDate = new Date(a.startDate);
+    const bDate = new Date(b.startDate);
+    return bDate.getTime() - aDate.getTime();
+  });
+
+  const tailoredEducationPromises = sortedEducationRaw.map(async (edu) => {
+    if (job && edu.description) {
+      try {
+        const result = await tailorEducationDescriptionAction({
+          education: edu,
+          job: job,
+          language: template.language,
+        });
+        return {
+          ...edu,
+          description:
+            result.success && result.tailoredDescription
+              ? result.tailoredDescription
+              : edu.description,
+        };
+      } catch (error) {
+        console.error(
+          `Exception tailoring education for ${edu.institution}:`,
+          error
+        );
+        return edu;
+      }
+    }
+    return edu;
+  });
+  const tailoredEducation = await Promise.all(tailoredEducationPromises);
+
+  const content = {
+    personalDetails: profile.personalDetails,
+    summary: generateSummary(profile, job, keywords),
+    experience: tailoredExperience,
+    education: tailoredEducation,
+    skills: sortedSkills,
+    languages: profile.languages,
+    certificates: profile.certificates || [],
+    interests: profile.interests || [],
+    keywords: keywords,
+    templateType: template.type,
+    templateLanguage: template.language,
+    photoIncluded: template.photoIncluded,
+  };
+
+  console.log("Generated CV Content:", content);
+  return content;
 };
 
 export const generateGermanCV = (content: any): string => {

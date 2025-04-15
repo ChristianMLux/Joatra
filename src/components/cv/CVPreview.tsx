@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { UserProfile, Job, CVTemplate } from "@/lib/types";
+import { UserProfile, Job, CVTemplate, Skill } from "@/lib/types";
 import {
   Box,
   Paper,
@@ -24,6 +24,20 @@ interface CVPreviewProps {
   profile: UserProfile;
   job?: Job | null;
 }
+
+const groupSkillsByCategory = (skills: Skill[]): Record<string, Skill[]> => {
+  return skills.reduce(
+    (acc, skill) => {
+      const category = skill.category || "Other";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(skill);
+      return acc;
+    },
+    {} as Record<string, Skill[]>
+  );
+};
 
 export default function CVPreview({
   content,
@@ -74,7 +88,7 @@ export default function CVPreview({
       try {
         await exportCVToPDF({
           element: cvRef.current,
-          fileName: `CV_${profile.personalDetails.firstName}_${profile.personalDetails.lastName}_${job ? job.company.replace(/[^a-z0-9]/gi, "_") : "allgemein"}`, // Sanitize company name
+          fileName: `CV_${profile.personalDetails.firstName}_${profile.personalDetails.lastName}_${job ? job.company.replace(/[^a-z0-9]/gi, "_") : "allgemein"}`,
           template: template,
         });
       } catch (error) {
@@ -95,9 +109,8 @@ export default function CVPreview({
     );
   }
 
-  const keywords = Array.isArray(content.keywords)
-    ? content.keywords.map((kw: string) => String(kw).toLowerCase())
-    : [];
+  const groupedSkills = groupSkillsByCategory(content.skills || []);
+  const skillCategories = Object.keys(groupedSkills);
 
   const fontFamily =
     template.type === "standard"
@@ -106,9 +119,11 @@ export default function CVPreview({
 
   return (
     <Box>
+      {/* Action Buttons */}
       <Box className="mb-4 flex justify-end gap-2">
         <MuiButton
           variant="outline"
+          size="sm"
           startIcon={<EditIcon />}
           href={profile.id ? `/profile/edit` : `/profile/create`}
         >
@@ -117,6 +132,7 @@ export default function CVPreview({
         <MuiButton
           id="cv-download-button"
           variant="primary"
+          size="sm"
           startIcon={
             isDownloading ? (
               <CircularProgress size={20} color="inherit" />
@@ -131,56 +147,63 @@ export default function CVPreview({
         </MuiButton>
       </Box>
 
+      {/* CV Paper */}
       <Paper
         elevation={0}
         ref={cvRef}
         className="border border-gray-200 rounded-lg max-w-4xl mx-auto bg-white"
         sx={{
-          padding: "20mm 15mm",
+          padding: "10mm 15mm 10mm 15mm",
           fontFamily: fontFamily,
-          fontSize: "11pt",
-          lineHeight: 1.4,
+          fontSize: "10pt",
+          lineHeight: 1.3,
           color: "#333333",
+          width: "210mm",
+          minHeight: "297mm",
+          boxSizing: "border-box",
+          borderColor: "#AAAAAA",
 
+          // --- Base Styles ---
           "& *": {
             fontFamily: fontFamily,
+            boxSizing: "border-box",
           },
           "& h1, & h2, & h3, & h4, & h5, & h6": {
             fontFamily: "'Arial', Helvetica, sans-serif",
             fontWeight: "bold",
             color: "#111111",
-            marginTop: "0.8em",
-            marginBottom: "0.4em",
+            marginTop: "0.7em",
+            marginBottom: "0.3em",
           },
           "& h1": {
             // Name
-            fontSize: "20pt",
+            fontSize: "18pt",
             textAlign: "center",
             color: (theme) => theme.palette.primary.main,
-            margin: "0 0 5mm 0",
+            margin: "0 0 4mm 0",
             borderBottom: "1px solid",
             borderColor: (theme) => theme.palette.primary.light,
-            paddingBottom: "3mm",
+            paddingBottom: "2.5mm",
           },
           "& h2": {
             // Section Titles
-            fontSize: "14pt",
+            fontSize: "13pt",
             color: (theme) => theme.palette.primary.dark,
             borderBottom: "1px solid #cccccc",
             paddingBottom: "1mm",
-            marginTop: "8mm",
-            marginBottom: "4mm",
+            marginTop: "6mm",
+            marginBottom: "3mm",
           },
           "& h3": {
             // Job Title / Degree
-            fontSize: "12pt",
+            fontSize: "11.5pt",
             fontWeight: "bold",
             color: "#000000",
             margin: "0 0 1mm 0",
           },
           "& p, & li": {
             color: "#333333",
-            fontSize: "11pt",
+            fontSize: "10pt",
             marginBottom: "1mm",
           },
           "& a": {
@@ -191,24 +214,24 @@ export default function CVPreview({
             },
           },
           "& strong": {
-            // Make strong tags actually bold
             fontWeight: "bold",
           },
           "& ul": {
-            // Style bullet points
+            // Bullet points for experience highlights
             paddingLeft: "5mm",
             listStyle: "disc",
-            marginTop: "2mm",
-            marginBottom: "2mm",
+            marginTop: "1.5mm",
+            marginBottom: "1.5mm",
           },
+          // --- Section & Item Styling ---
           ".cv-section": {
-            marginBottom: "8mm",
+            marginBottom: "6mm",
           },
           ".cv-item": {
-            marginBottom: "5mm",
+            marginBottom: "1mm",
             paddingLeft: "5mm",
             borderLeft: "2px solid #eeeeee",
-            paddingBottom: "2mm",
+            paddingBottom: "1.5mm",
           },
           ".cv-item-header": {
             display: "flex",
@@ -221,20 +244,21 @@ export default function CVPreview({
             paddingRight: "5mm",
           },
           ".cv-date": {
-            fontSize: "10pt",
+            fontSize: "9.5pt",
             color: "#555555",
             textAlign: "right",
-            minWidth: "30mm",
+            minWidth: "28mm",
             flexShrink: 0,
             paddingTop: "1pt",
           },
+          // --- Specific Sections ---
           ".contact-info": {
             textAlign: "center",
-            fontSize: "10pt",
+            fontSize: "9.5pt",
             color: "#444444",
-            marginBottom: "5mm",
+            marginBottom: "4mm",
             borderBottom: "1px solid #eeeeee",
-            paddingBottom: "3mm",
+            paddingBottom: "2.5mm",
             "& span": {
               "&:not(:last-child)::after": {
                 content: '" • "',
@@ -242,14 +266,25 @@ export default function CVPreview({
               },
             },
           },
-          ".skills-list, .languages-list": {
-            fontSize: "11pt",
+          ".skills-list, .languages-list, .interests-list": {
+            // Added interests-list
+            fontSize: "10.5pt",
             paddingLeft: "5mm",
+            marginTop: "1mm",
           },
           ".skills-list span, .languages-list span": {
             "&:not(:last-child)::after": {
               content: '", "',
             },
+          },
+          ".skill-category-title": {
+            // Styling for category subheadings
+            fontSize: "10.5pt",
+            fontWeight: "bold",
+            color: "#444444",
+            marginTop: "2mm",
+            marginBottom: "0.5mm",
+            paddingLeft: "5mm",
           },
         }}
       >
@@ -260,6 +295,7 @@ export default function CVPreview({
 
         {/* Contact Info */}
         <Box className="contact-info">
+          {/* ... contact info rendering ... */}
           {profile.personalDetails.email && (
             <Typography variant="body2" component="span">
               {profile.personalDetails.email}
@@ -297,7 +333,6 @@ export default function CVPreview({
               </a>
             </Typography>
           )}
-          {/* TODO: Add Xing, GitHub etc. similarly if available */}
         </Box>
 
         {/* Summary */}
@@ -305,7 +340,7 @@ export default function CVPreview({
           <Box className="cv-section">
             <Typography
               variant="body1"
-              sx={{ fontStyle: "italic", color: "#444" }}
+              sx={{ fontStyle: "italic", color: "#444", fontSize: "8px" }}
             >
               {content.summary}
             </Typography>
@@ -321,12 +356,13 @@ export default function CVPreview({
                 : "Professional Experience"}
             </h2>
             {content.experience.map((exp: any, index: number) => (
-              <Box key={index} className="cv-item">
+              <Box key={`exp-${index}`} className="cv-item">
                 <Box className="cv-item-header">
                   <Box className="cv-item-details">
                     <h3>{exp.position}</h3>
                     <Typography
                       variant="body1"
+                      padding=""
                       sx={{ fontWeight: "500", color: "#222" }}
                     >
                       {exp.company} {exp.location && `| ${exp.location}`}
@@ -339,16 +375,16 @@ export default function CVPreview({
                 {exp.description && (
                   <Typography
                     variant="body2"
-                    sx={{ whiteSpace: "pre-line", marginTop: "2mm" }}
+                    sx={{ whiteSpace: "pre-line", marginTop: "1.5mm" }}
                   >
-                    {/* TODO: Consider parsing description into bullet points if possible */}
+                    {/* Render the potentially tailored description */}
                     {exp.description}
                   </Typography>
                 )}
                 {exp.highlights && exp.highlights.length > 0 && (
-                  <ul style={{ paddingLeft: "5mm", marginTop: "2mm" }}>
+                  <ul style={{ paddingLeft: "5mm", marginTop: "1.5mm" }}>
                     {exp.highlights.map((h: string, i: number) => (
-                      <li key={i}>
+                      <li key={`highlight-${i}`}>
                         <Typography variant="body2">{h}</Typography>
                       </li>
                     ))}
@@ -364,7 +400,7 @@ export default function CVPreview({
           <Box className="cv-section">
             <h2>{template.language === "de" ? "Ausbildung" : "Education"}</h2>
             {content.education.map((edu: any, index: number) => (
-              <Box key={index} className="cv-item">
+              <Box key={`edu-${index}`} className="cv-item">
                 <Box className="cv-item-header">
                   <Box className="cv-item-details">
                     <h3>
@@ -384,7 +420,7 @@ export default function CVPreview({
                 {edu.description && (
                   <Typography
                     variant="body2"
-                    sx={{ whiteSpace: "pre-line", marginTop: "2mm" }}
+                    sx={{ whiteSpace: "pre-line", marginTop: "1.5mm" }}
                   >
                     {edu.description}
                   </Typography>
@@ -394,23 +430,30 @@ export default function CVPreview({
           </Box>
         )}
 
-        {/* Skills */}
-        {content.skills?.length > 0 && (
+        {/* Skills - Grouped by Category */}
+        {skillCategories.length > 0 && (
           <Box className="cv-section">
             <h2>
               {template.language === "de"
                 ? "Kenntnisse & Fähigkeiten"
                 : "Skills"}
             </h2>
-            <Typography variant="body1" className="skills-list">
-              {content.skills.map((skill: any, index: number) => (
-                <span key={index}>
-                  {skill.name}
-                  {skill.level ? ` (${skill.level})` : ""}
-                </span>
-              ))}
-            </Typography>
-            {/* TODO: Consider grouping skills by category here if data supports it */}
+            {skillCategories.map((category) => (
+              <Box key={category} mb={1}>
+                {" "}
+                <Typography className="skill-category-title">
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                </Typography>
+                <Typography variant="body1" className="skills-list">
+                  {groupedSkills[category].map((skill: any, index: number) => (
+                    <span key={`${category}-skill-${index}`}>
+                      {skill.name}
+                      {skill.level ? ` (${skill.level})` : ""}
+                    </span>
+                  ))}
+                </Typography>
+              </Box>
+            ))}
           </Box>
         )}
 
@@ -420,7 +463,7 @@ export default function CVPreview({
             <h2>{template.language === "de" ? "Sprachen" : "Languages"}</h2>
             <Typography variant="body1" className="languages-list">
               {content.languages.map((lang: any, index: number) => (
-                <span key={index}>
+                <span key={`lang-${index}`}>
                   {lang.name} ({lang.level})
                 </span>
               ))}
@@ -428,17 +471,15 @@ export default function CVPreview({
           </Box>
         )}
 
-        {/* Interests (optional) */}
+        {/* Interests */}
         {content.interests && content.interests.length > 0 && (
           <Box className="cv-section">
             <h2>{template.language === "de" ? "Interessen" : "Interests"}</h2>
-            <Typography variant="body1">
+            <Typography variant="body1" className="interests-list">
               {content.interests.join(", ")}
             </Typography>
           </Box>
         )}
-
-        {/* Add other sections like Certificates if they exist in content */}
       </Paper>
     </Box>
   );
