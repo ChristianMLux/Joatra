@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+// Import Suspense from React
+import { useState, useEffect, useRef, Suspense } from "react";
 import AuthCheck from "@/components/auth/AuthCheck";
 import JobList from "@/components/jobs/JobList";
 import Link from "next/link";
@@ -15,14 +16,12 @@ import PdfExportButton from "@/components/jobs/PdfExportButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job } from "@/lib/types";
 
-export default function Home() {
-  const { user, loading: authLoading } = useAuth();
+// Create a component that uses useSearchParams
+function JobDashboardContent() {
   const { jobs, loading: jobsLoading, refresh } = useJobs();
   const [viewMode, setViewMode] = useState<"full" | "compact">("full");
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // Hook is used here
   const router = useRouter();
-
-  const initialLoadRef = useRef(false);
 
   const statusFilter = searchParams.get("status") || "all";
 
@@ -54,6 +53,89 @@ export default function Home() {
     return bTime - aTime;
   });
 
+  return (
+    <div className="max-w-6xl mx-auto">
+      <div className="mb-6">
+        <Title text="Dashboard" className="mb-6" />
+
+        <MuiFilterTabs statusCounts={statusCounts} totalCount={totalCount} />
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">
+              {statusFilter === "all"
+                ? `Alle Bewerbungen (${sortedJobs.length})`
+                : `${statusFilter} (${sortedJobs.length})`}
+            </h2>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+            <PdfExportButton jobs={sortedJobs} />
+            <MuiButton
+              variant="outline"
+              size="sm"
+              onClick={() => refresh()}
+              disabled={jobsLoading}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Aktualisieren
+            </MuiButton>
+
+            <Link href="/jobs/add">
+              <MuiButton variant="primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Neue Bewerbung
+              </MuiButton>
+            </Link>
+          </div>
+        </div>
+
+        {jobsLoading ? (
+          <LoadingSpinner message="Bewerbungen werden geladen..." />
+        ) : (
+          <JobList
+            jobs={sortedJobs}
+            onJobUpdate={refresh}
+            viewMode={viewMode}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const { user, loading: authLoading } = useAuth();
+  const { refresh } = useJobs(); // Keep refresh logic if needed outside Suspense
+  const initialLoadRef = useRef(false);
+
   useEffect(() => {
     if (user && !initialLoadRef.current) {
       refresh();
@@ -65,9 +147,11 @@ export default function Home() {
     return <LoadingSpinner />;
   }
 
+  // --- Landing Page for logged-out users ---
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto text-center">
+        {/* ... existing landing page content ... */}
         <div className="py-12">
           <Title text="Joatra" size="2xl" className="mb-4" />
           <p className="text-xl text-gray-600 mb-8">
@@ -158,82 +242,15 @@ export default function Home() {
     );
   }
 
+  // --- Dashboard for logged-in users ---
   return (
     <AuthCheck>
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <Title text="Dashboard" className="mb-6" />
-
-          <MuiFilterTabs statusCounts={statusCounts} totalCount={totalCount} />
-
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-              <h2 className="text-lg font-medium text-gray-900">
-                {statusFilter === "all"
-                  ? `Alle Bewerbungen (${sortedJobs.length})`
-                  : `${statusFilter} (${sortedJobs.length})`}
-              </h2>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
-              <PdfExportButton jobs={sortedJobs} />
-              <MuiButton
-                variant="outline"
-                size="sm"
-                onClick={() => refresh()}
-                disabled={jobsLoading}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Aktualisieren
-              </MuiButton>
-
-              <Link href="/jobs/add">
-                <MuiButton variant="primary">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                  Neue Bewerbung
-                </MuiButton>
-              </Link>
-            </div>
-          </div>
-
-          {jobsLoading ? (
-            <LoadingSpinner message="Bewerbungen werden geladen..." />
-          ) : (
-            <JobList
-              jobs={sortedJobs}
-              onJobUpdate={refresh}
-              viewMode={viewMode}
-            />
-          )}
-        </div>
-      </div>
+      {/* Wrap the part using useSearchParams in Suspense */}
+      <Suspense
+        fallback={<LoadingSpinner message="Dashboard wird geladen..." />}
+      >
+        <JobDashboardContent />
+      </Suspense>
     </AuthCheck>
   );
 }
