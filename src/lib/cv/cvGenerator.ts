@@ -12,6 +12,7 @@ import {
   tailorExperienceDescriptionAction,
   tailorEducationDescriptionAction,
 } from "@/app/actions/cvActions";
+import { serializeObjectForServerAction } from "../utils";
 
 export const extractKeywords = (job: Job | null): string[] => {
   if (!job) return [];
@@ -141,7 +142,6 @@ const extractSoftSkills = (text: string): string[] => {
   return softSkillsList.filter((skill) => text.includes(skill));
 };
 
-// --- Sorting and Formatting Functions ---
 export const sortSkillsByRelevance = (
   skills: Skill[],
   keywords: string[]
@@ -225,12 +225,14 @@ export const generateCV = async (
     return bDate.getTime() - aDate.getTime();
   });
 
+  const serializedJob = job ? serializeObjectForServerAction(job) : null;
+
   const tailoredExperiencePromises = sortedExperienceRaw.map(async (exp) => {
     if (job && exp.description) {
       try {
         const result = await tailorExperienceDescriptionAction({
           experience: exp,
-          job: job,
+          job: serializedJob,
           language: template.language,
         });
         return {
@@ -263,7 +265,7 @@ export const generateCV = async (
       try {
         const result = await tailorEducationDescriptionAction({
           education: edu,
-          job: job,
+          job: serializedJob,
           language: template.language,
         });
         return {

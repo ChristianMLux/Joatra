@@ -17,6 +17,7 @@ import {
 import { UserProfile, Job } from "@/lib/types";
 import toast from "react-hot-toast";
 import { generateCoverLetterAction } from "@/app/actions/coverLetterActions";
+import { serializeObjectForServerAction } from "@/lib/utils";
 
 interface CoverLetterTemplate {
   id: string;
@@ -227,14 +228,23 @@ export function CoverLetterGeneratorProvider({
       },
     };
 
-    console.log(
-      "Provider: Calling generateCoverLetterAction with payload:",
-      payload
-    );
+    let serializedPayload;
+    try {
+      serializedPayload = serializeObjectForServerAction(payload);
+      console.log(
+        "Provider: Calling generateCoverLetterAction with serialized payload:",
+        serializedPayload
+      );
+    } catch (error) {
+      console.error("Error serializing payload for Server Action:", error);
+      toast.error("Fehler bei der Vorbereitung der Daten für den Server.");
+      return;
+    }
+
     setGeneratedContent(null);
 
     try {
-      const result = await generateCoverLetterAction(payload);
+      const result = await generateCoverLetterAction(serializedPayload);
       console.log("Provider: Received result from Server Action:", result);
 
       if (result.success && result.content) {
@@ -253,7 +263,6 @@ export function CoverLetterGeneratorProvider({
       );
       toast.error("Ein unerwarteter Fehler ist aufgetreten.");
       setGeneratedContent(null);
-    } finally {
     }
   };
 

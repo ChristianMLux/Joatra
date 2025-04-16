@@ -1,6 +1,5 @@
 "use client";
 
-// Import Suspense from React
 import { useState, useEffect, useRef, Suspense } from "react";
 import AuthCheck from "@/components/auth/AuthCheck";
 import JobList from "@/components/jobs/JobList";
@@ -12,15 +11,13 @@ import Title from "@/components/ui/Title";
 import MuiFilterTabs from "@/components/jobs/FilterTabs";
 import ViewToggle from "@/components/jobs/ViewToggle";
 import MuiButton from "@/components/ui/Button";
-import PdfExportButton from "@/components/jobs/PdfExportButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job } from "@/lib/types";
 
-// Create a component that uses useSearchParams
 function JobDashboardContent() {
   const { jobs, loading: jobsLoading, refresh } = useJobs();
   const [viewMode, setViewMode] = useState<"full" | "compact">("full");
-  const searchParams = useSearchParams(); // Hook is used here
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   const statusFilter = searchParams.get("status") || "all";
@@ -71,7 +68,6 @@ function JobDashboardContent() {
 
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
-            <PdfExportButton jobs={sortedJobs} />
             <MuiButton
               variant="outline"
               size="sm"
@@ -133,7 +129,7 @@ function JobDashboardContent() {
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
-  const { refresh } = useJobs(); // Keep refresh logic if needed outside Suspense
+  const { refresh } = useJobs();
   const initialLoadRef = useRef(false);
 
   useEffect(() => {
@@ -147,11 +143,9 @@ export default function Home() {
     return <LoadingSpinner />;
   }
 
-  // --- Landing Page for logged-out users ---
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto text-center">
-        {/* ... existing landing page content ... */}
         <div className="py-12">
           <Title text="Joatra" size="2xl" className="mb-4" />
           <p className="text-xl text-gray-600 mb-8">
@@ -242,10 +236,8 @@ export default function Home() {
     );
   }
 
-  // --- Dashboard for logged-in users ---
   return (
     <AuthCheck>
-      {/* Wrap the part using useSearchParams in Suspense */}
       <Suspense
         fallback={<LoadingSpinner message="Dashboard wird geladen..." />}
       >

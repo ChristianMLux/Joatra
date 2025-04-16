@@ -59,6 +59,7 @@ export default function CVGenerator() {
     generateContent,
   } = useCVGenerator();
 
+  console.log(templates);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialJobId = searchParams.get("jobId");

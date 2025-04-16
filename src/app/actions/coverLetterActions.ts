@@ -144,53 +144,60 @@ export async function generateCoverLetterAction(
         .join("\n")
     : "Your Company\n[City]";
 
-  // --- PROMPT ---
-  let prompt = `**Instruction:** Generate a professional and polite cover letter in ${templateData.language === "de" ? "German" : "English"}.
-  **Style:** ${templateData.style} ${templateData.language === "de" && templateData.din5008Compliant ? "(DIN 5008 compliant formatting preferred)" : ""}
+  let prompt = `**Instruction:** Erstelle ein professionelles Anschreiben in ${templateData.language === "de" ? "deutscher" : "englischer"} Sprache für eine Bewerbung.
+  **Style:** ${templateData.style} ${templateData.language === "de" && templateData.din5008Compliant ? "(DIN 5008-konform)" : ""}
 
-  **Goal:** Convince the reader that the applicant (${profileData.personalDetails.firstName} ${profileData.personalDetails.lastName}) is an excellent candidate for the position of ${jobData?.jobTitle || "the advertised position"} at ${jobData?.company || "your company"}. Create a clear connection ("roter Faden") between the applicant's profile and the job requirements. Highlight relevant achievements.
+  **WICHTIGE FORMAT-ANFORDERUNGEN:**
+  - Das gesamte Anschreiben MUSS auf EINE A4-Seite passen. Dies ist absolut entscheidend.
+  - Halte jeden Abschnitt prägnant, aber vollständig. 
+  - Die Einleitung sollte maximal 3-4 Sätze umfassen.
+  - Der Hauptteil sollte 2-3 kurze, prägnante Absätze haben.
+  - Der Abschluss sollte kompakt sein und auf ein Vorstellungsgespräch hinweisen.
+  - Verzichte auf Füllwörter und unnötige Höflichkeitsfloskeln.
+  - Verwende NICHT "..." als Abkürzung für gekürzte Inhalte. Formuliere stattdessen kompakte, vollständige Sätze.
 
-  **Applicant Profile:**
+  **Ziel:** Überzeuge den Leser, dass der Bewerber (${profileData.personalDetails.firstName} ${profileData.personalDetails.lastName}) ein:e exzellente:r Kandidat:in für die Position als ${jobData?.jobTitle || "die ausgeschriebene Position"} bei ${jobData?.company || "Ihrem Unternehmen"} ist. Stelle einen klaren Bezug ("roter Faden") zwischen dem Profil des Bewerbers und den Anforderungen der Stelle her. Hebe relevante Erfolge hervor.
+
+  **Bewerber-Profil:**
   Name: ${profileData.personalDetails.firstName} ${profileData.personalDetails.lastName}
-  Contact: ${profileData.personalDetails.address || ""}, ${profileData.personalDetails.postalCode || ""} ${profileData.personalDetails.city || ""}, Phone: ${profileData.personalDetails.phone || "N/A"}, Email: ${profileData.personalDetails.email}
-  Summary/Key Strengths (Use for inspiration, rephrase professionally for introduction): ${profileData.summary || "Motivated professional"}
-  Relevant Experience Details (Focus on achievements/results from descriptions):\n${relevantExperienceDetails || "No specific experience details provided."}
-  Key Skills: ${profileData.skills
+  Kontakt: ${profileData.personalDetails.address || ""}, ${profileData.personalDetails.postalCode || ""} ${profileData.personalDetails.city || ""}, Tel.: ${profileData.personalDetails.phone || "N/A"}, E-Mail: ${profileData.personalDetails.email}
+  Zusammenfassung/Stärken (Zur Inspiration für die Einleitung): ${profileData.summary || "Motivierte:r Fachkraft"}
+  Relevante Berufserfahrung (Konzentriere dich auf Erfolge/Ergebnisse):\n${relevantExperienceDetails || "Keine spezifischen Erfahrungsdetails angegeben."}
+  Schlüsselkompetenzen: ${profileData.skills
     .slice(0, 10)
     .map((s) => s.name)
     .join(", ")}
 
-  **Target Job:**
-  Job Title: ${jobData?.jobTitle || "Advertised Position"}
-  Company Address Details: ${companyAddressString}
-  Contact Person Name: ${jobData?.contactPerson?.name || "Not specified"}
-  Keywords to integrate naturally: ${keywords.join(", ")}
-  Key Job Requirements/Notes (Address these points specifically):\n${jobRequirements}
+  **Zielposition:**
+  Jobtitel: ${jobData?.jobTitle || "Ausgeschriebene Position"}
+  Firmenadresse: ${companyAddressString}
+  Ansprechpartner: ${jobData?.contactPerson?.name || "Nicht angegeben"}
+  Schlüsselwörter zur natürlichen Integration: ${keywords.join(", ")}
+  Hauptanforderungen/Notizen (Auf diese Punkte gezielt eingehen):\n${jobRequirements}
 
-  **Task:** Write the complete cover letter. Structure the output CLEARLY using the following tags EXACTLY as written, with the content for each section immediately following the tag on a new line:
+  **Aufgabe:** Erstelle das vollständige Anschreiben. Strukturiere die Ausgabe DEUTLICH mit den folgenden Tags EXAKT wie geschrieben, wobei der Inhalt für jeden Abschnitt unmittelbar nach dem jeweiligen Tag auf einer neuen Zeile folgt:
   [PERSONAL_DETAILS_BLOCK]
-  (Formatted sender address block: Name, Address, Phone, Email)
+  (Formatierter Absenderblock: Name, Adresse, Telefon, E-Mail)
   [COMPANY_ADDRESS_BLOCK]
-  (Use the provided 'Company Address Details'. Format it correctly for a letter address block.)
+  (Verwende die angegebene 'Firmenadresse'. Formatiere sie korrekt für die Adresszeile eines Briefes.)
   [DATE]
-  (Current date: ${currentDateFormatted})
+  (Aktuelles Datum: ${currentDateFormatted})
   [SUBJECT]
-  (Subject line: "Bewerbung als ${jobData?.jobTitle || "Advertised Position"}" possibly with Ref. if available in notes. Output PLAIN TEXT, no markdown bolding.)
+  (Betreffzeile: "Bewerbung als ${jobData?.jobTitle || "Ausgeschriebene Position"}" ggf. mit Ref., falls in den Notizen verfügbar. Gib REINEN TEXT aus, keine Markdown-Formatierung wie Fettschrift.)
   [SALUTATION]
-  (Personalized using 'Contact Person Name' if possible, otherwise formal generic)
+  (Personalisierte Anrede mit 'Ansprechpartner', falls möglich, sonst formale Standardanrede)
   [INTRODUCTION]
-  (Engaging opening paragraph. Rephrase summary professionally. State the purpose and express specific interest in THIS role and THIS company, possibly referencing something from the job notes like company culture or technology stack.)
+  (Ansprechender Einleitungsabsatz. Formuliere die Zusammenfassung professionell um. Nenne den Zweck und drücke spezifisches Interesse an DIESER Position und DIESEM Unternehmen aus, evtl. mit Bezug auf etwas aus den Job-Notizen wie Unternehmenskultur oder verwendete Technologien.)
   [MAIN_BODY]
-  (Structure in 2-3 logical paragraphs:
-   1. Start with the most impactful experience/achievement from 'Relevant Experience Details' and explicitly link it to a key 'Job Requirement'. Integrate relevant keywords.
-   2. Discuss other relevant skills and experiences, addressing how they meet further job requirements. If there's a technology gap (e.g., profile mentions React, job requires Vue), address it positively (strong foundation, quick learner, transferable skills).
-   3. Conclude the main body by reiterating strong motivation for this specific role at this company, perhaps linking back to company values or opportunities mentioned in job notes if applicable.)
+  (Strukturiere in 2-3 logischen Absätzen:
+   1. Beginne mit der wirkungsvollsten Erfahrung/Erfolg aus 'Relevante Berufserfahrung' und verknüpfe sie explizit mit einer Hauptanforderung der Stelle. Integriere relevante Schlüsselwörter.
+   2. Stelle weitere relevante Fähigkeiten und Erfahrungen vor, die weitere Jobanforderungen erfüllen. Falls es eine Technologie-Lücke gibt (z.B. Profil erwähnt React, Job erfordert Vue), adressiere diese positiv (solide Grundlage, schnelle Lernfähigkeit, übertragbare Fähigkeiten).
+   3. Schließe den Hauptteil mit einer erneuten Betonung der starken Motivation für diese spezifische Position bei diesem Unternehmen ab, evtl. mit Bezug auf Unternehmenswerte oder Möglichkeiten, die in den Job-Notizen erwähnt werden.)
   [CLOSING]
-  (Standard closing paragraph expressing interest in an interview, closing phrase like "Mit freundlichen Grüßen" or "Sincerely,", and typed applicant name.)
+  (Standardmäßiger Schlussabsatz mit Interesse an einem Vorstellungsgespräch, Schlussformel wie "Mit freundlichen Grüßen" oder "Sincerely,", und dem Namen des Bewerbers.)
 
-  **ULTRA IMPORTANT:** Absolutely DO NOT include any placeholders like "[...]" or "(...)" or comments like "(Address missing)" or similar instructions within the generated text for any section. If information is missing, omit it or phrase the sentence naturally without the missing piece. The output must only contain the final cover letter text for each section.
+  **ÄUSSERST WICHTIG:** Füge KEINE Platzhalter wie "[...]" oder "(...)" oder Kommentare wie "(Adresse fehlt)" oder ähnliche Anweisungen im generierten Text für irgendeinen Abschnitt ein. Falls Informationen fehlen, lasse sie aus oder formuliere den Satz natürlich ohne das fehlende Element. Die Ausgabe darf NUR den endgültigen Anschreiben-Text für jeden Abschnitt enthalten.
   `;
-  // --- END OF OPTIMIZED PROMPT ---
 
   console.log(
     "Server Action: Sending prompt to LLM:",

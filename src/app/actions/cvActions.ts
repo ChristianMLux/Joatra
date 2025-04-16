@@ -66,7 +66,6 @@ const handleError = (error: any, context: string): ActionResult => {
   };
 };
 
-// --- Action for Experience ---
 export async function tailorExperienceDescriptionAction(
   payload: TailorExperiencePayload
 ): Promise<ActionResult> {
@@ -87,19 +86,25 @@ export async function tailorExperienceDescriptionAction(
   const jobTitle = job?.jobTitle || "the target position";
 
   const prompt = `
- **Instruction:** You are an expert CV writer. Rewrite the following "Original Description" for the position of "${experience.position}" at "${experience.company}" to be suitable for a CV targeting the job "${jobTitle}".
- Focus on highlighting skills, responsibilities, and achievements from the original description that are most relevant to the "Target Job Description/Requirements".
- Use strong action verbs and maintain a professional tone in ${language === "de" ? "German" : "English"}. Keep the rewritten description concise but comprehensive, ensuring key details are preserved. The description should not exceed 4 lines on DIN A4 format
+ **Instruction:** Du bist ein Expert/in für Lebenslauf-Optimierung. Formuliere die folgende "Original Description" für die Position "${experience.position}" bei "${experience.company}" so um, dass sie besser zur Stellenausschreibung "${jobTitle}" passt.
+ 
+ **WICHTIG:** 
+ - Behalte unbedingt die Ich-Form bei (z.B. "Ich habe entwickelt..." statt "Entwickelte...").
+ - Kürze den Text nicht mit "...", sondern formuliere Inhalte komplett und prägnant.
+ - Formuliere so, dass die Beschreibung auf einem CV professionell wirkt.
+ - Betone Fähigkeiten und Erfolge, die für die Zielposition relevant sind.
+ - Verwende starke Aktionsverben in ${language === "de" ? "deutscher" : "englischer"} Sprache.
+ - Maximale Länge: 4 Zeilen (ca. 400 Zeichen), aber stelle sicher, dass alle wichtigen Informationen enthalten sind.
 
- **Context:**
- * **Original Description:** ${originalDescription}
- * **Target Job Title:** ${jobTitle}
- * **Target Job Description/Requirements:** ${jobDescription.substring(0, 1200)}...
+ **Kontext:**
+ * **Original Beschreibung:** ${originalDescription}
+ * **Zielposition:** ${jobTitle}
+ * **Stellenbeschreibung/Anforderungen:** ${jobDescription.substring(0, 1200)}...
 
- **Task:** Rewrite the "Original Description" based on the instructions above. Output *only* the rewritten description text, without any additional explanations or formatting like bullet points unless it naturally fits the rewritten text.
-
- **Example Rewritten Output:**
- Led the full-stack development (C#/ASP.NET, React/TypeScript) of key platform features, including responsive component implementation and optimization. Collaborated closely with Product Owners on requirement analysis and specifications. Enhanced code quality through rigorous code reviews and the development of automated unit, integration, and end-to-end tests. Optimized CI processes and integrated Google Analytics for data-driven performance improvements.
+ **Aufgabe:** Formuliere die "Original Beschreibung" basierend auf den Anweisungen um. Gib NUR den umformulierten Text zurück, ohne zusätzliche Erklärungen oder Formatierungen.
+ 
+ **Beispiel für gutes Ergebnis:**
+ "Ich entwickelte responsive Frontend-Komponenten mit React/TypeScript und Next.js. Dabei führte ich Code-Reviews durch, implementierte automatisierte Tests und optimierte den CI-Prozess. Die Integration von Google Analytics ermöglichte mir datenbasierte Entscheidungen zur Performance-Verbesserung."
  `;
 
   console.log("Server Action (Experience): Sending prompt to LLM...");
@@ -129,7 +134,6 @@ export async function tailorExperienceDescriptionAction(
   }
 }
 
-// --- Action for Education ---
 export async function tailorEducationDescriptionAction(
   payload: TailorEducationPayload
 ): Promise<ActionResult> {
@@ -150,20 +154,24 @@ export async function tailorEducationDescriptionAction(
   const jobTitle = job?.jobTitle || "the target position";
 
   const prompt = `
- **Instruction:** You are an expert CV writer. Rewrite the following "Original Education Description" for the degree "${education.degree}" from "${education.institution}" to be suitable for a CV targeting the job "${jobTitle}".
- Focus on highlighting key modules, projects, theses, or acquired skills from the original description that are most relevant to the "Target Job Description/Requirements".
- Use clear and concise language in ${language === "de" ? "German" : "English"}. **The final rewritten description must not exceed 4 lines.**
+ **Instruction:** Du bist ein Expert/in für Lebenslauf-Optimierung. Formuliere die folgende "Original Ausbildungsbeschreibung" für den Abschluss "${education.degree}" von "${education.institution}" so um, dass sie besser zur Stellenausschreibung "${jobTitle}" passt.
+ 
+ **WICHTIG:** 
+ - Behalte unbedingt die Ich-Form bei, falls diese im Original verwendet wird.
+ - Kürze den Text nicht mit "...", sondern formuliere vollständige und prägnante Sätze.
+ - Hervorhebung von relevanten Kursen, Projekten oder Abschlussarbeiten, die für die Zielposition wertvoll sind.
+ - Verwende klare und prägnante Sprache in ${language === "de" ? "Deutsch" : "Englisch"}.
+ - Maximale Länge: 3 Zeilen (ca. 300 Zeichen).
 
- **Context:**
- * **Original Education Description:** ${originalDescription}
- * **Target Job Title:** ${jobTitle}
- * **Target Job Description/Requirements:** ${jobDescription.substring(0, 1000)}...
+ **Kontext:**
+ * **Original Ausbildungsbeschreibung:** ${originalDescription}
+ * **Zielposition:** ${jobTitle}
+ * **Stellenbeschreibung/Anforderungen:** ${jobDescription.substring(0, 1000)}...
 
- **Task:** Rewrite the "Original Education Description" based on the instructions above, ensuring it is relevant and **does not exceed 4 lines**. Output *only* the rewritten description text.
+ **Aufgabe:** Formuliere die "Original Ausbildungsbeschreibung" basierend auf den Anweisungen um. Gib NUR den umformulierten Text zurück, ohne zusätzliche Erklärungen oder Formatierungen.
 
- **Example Rewritten Output (max 4 lines):**
- Key modules included Advanced Algorithms, Database Systems, and Cloud Infrastructure. Developed a web application for project management as final thesis, utilizing React and Node.js. Gained practical experience with agile methodologies (Scrum).
-
+ **Beispiel für gutes Ergebnis:**
+ "Schwerpunkte meines Studiums waren Datenbanksysteme, Cloud Computing und moderne Frontend-Technologien. In meiner Abschlussarbeit entwickelte ich eine Web-Anwendung mit React und Node.js. Praktische Erfahrung sammelte ich durch Teamprojekte mit agilen Methoden (Scrum)."
  `;
 
   console.log("Server Action (Education): Sending prompt to LLM...");
@@ -179,13 +187,6 @@ export async function tailorEducationDescriptionAction(
     console.log("Server Action (Education): Received response.");
 
     let tailoredDescription = generatedText;
-
-    const lines = tailoredDescription.split("\n").length;
-    if (lines > 4) {
-      console.warn(
-        `Server Action (Education): Output exceeded 4 lines (${lines}). Truncating or prompt refinement needed.`
-      );
-    }
 
     if (
       tailoredDescription.length === 0 && originalDescription

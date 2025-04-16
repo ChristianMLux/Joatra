@@ -192,7 +192,7 @@ export interface CVTemplate {
   name: string;
   description: string;
   language: "de" | "en";
-  type: "standard" | "modern" | "academic" | "creative";
+  type: "standard" | "modern" | "academic" | "creative" | "enhanced";
   atsOptimized: boolean;
   photoIncluded: boolean;
 }

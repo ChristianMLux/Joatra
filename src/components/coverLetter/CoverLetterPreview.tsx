@@ -1,236 +1,254 @@
-"use client";
-
-import { useRef, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserProfile, Job } from "@/lib/types";
-import { Box, Paper, Typography, CircularProgress } from "@mui/material";
+import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import MuiButton from "@/components/ui/Button";
-import { exportCoverLetterToPDF } from "@/lib/coverLetter/coverLetterExport";
 import DownloadIcon from "@mui/icons-material/Download";
-import EditIcon from "@mui/icons-material/Edit";
+import { CircularProgress, Box, Typography, Paper } from "@mui/material";
+
+import { pdf, PDFDownloadLink } from "@react-pdf/renderer";
+import CoverLetterPdfDocument from "./CoverLetterPdfDocument";
+
+import {
+  pdfjs,
+  Document as PdfDisplayDoc,
+  Page as PdfDisplayPage,
+} from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
+interface CoverLetterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: "de" | "en";
+  style: "formal" | "modern" | "creative";
+  atsOptimized: boolean;
+  din5008Compliant?: boolean;
+}
 
 interface CoverLetterPreviewProps {
   content: any;
-  template: {
-    id: string;
-    name: string;
-    description: string;
-    language: "de" | "en";
-    style: "formal" | "modern" | "creative";
-    atsOptimized: boolean;
-    din5008Compliant?: boolean;
-  };
+  template: CoverLetterTemplate;
   profile: UserProfile;
   job?: Job | null;
 }
 
-// --- DIN 5008 Styling Constants ---
-const FONT_FAMILY_FORMAL = "'Times New Roman', Times, serif";
-const FONT_FAMILY_MODERN = "'Arial', Helvetica, sans-serif";
-const BASE_FONT_SIZE = "11pt";
-const SMALLER_FONT_SIZE = "9pt";
-const LINE_HEIGHT = 1.5;
-
-const spacing = {
-  oneLine: `${1 * LINE_HEIGHT}em`,
-  twoLines: `${2 * LINE_HEIGHT}em`,
-  threeLines: `${3 * LINE_HEIGHT}em`,
-};
-
-export default function CoverLetterPreview({
+const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
   content,
   template,
   profile,
   job,
-}: CoverLetterPreviewProps) {
-  const coverLetterRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+}) => {
+  const [isClient, setIsClient] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(true);
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const handleDownload = async () => {
-    if (coverLetterRef.current && !isDownloading) {
-      setIsDownloading(true);
-      try {
-        await exportCoverLetterToPDF({
-          element: coverLetterRef.current,
-          fileName: `Anschreiben_${profile.personalDetails.firstName}_${profile.personalDetails.lastName}_${job ? job.company.replace(/[^a-z0-9]/gi, "_") : "allgemein"}`,
-          template: template,
-        });
-      } catch (error) {
-        console.error("Download failed in CoverLetterPreview:", error);
-      } finally {
-        setIsDownloading(false);
-      }
+  useEffect(() => {
+    setIsClient(true);
+
+    if (!content || !profile || !template) {
+      setIsLoadingPdf(false);
+      setPdfError(
+        "Fehlende Daten für die PDF-Generierung (Profil, Inhalt oder Template)."
+      );
+      return;
     }
+
+    const generatePdfBlob = async () => {
+      setIsLoadingPdf(true);
+      setPdfError(null);
+      setPdfBlobUrl(null);
+      let generatedUrl: string | null = null;
+
+      console.log("Generating Cover Letter PDF blob with content:", content);
+
+      try {
+        const documentElement = (
+          <CoverLetterPdfDocument
+            profile={profile}
+            job={job}
+            content={content}
+            template={template}
+          />
+        );
+
+        const blob = await pdf(documentElement).toBlob();
+        generatedUrl = URL.createObjectURL(blob);
+        setPdfBlobUrl(generatedUrl);
+        console.log("Generated Cover Letter Blob URL:", generatedUrl);
+      } catch (error: any) {
+        console.error("Error generating Cover Letter PDF blob:", error);
+        if (
+          error.message &&
+          error.message.toLowerCase().includes("outside <text> component")
+        ) {
+          setPdfError(
+            `Fehler beim Generieren der PDF: Text außerhalb von <Text> in CoverLetterPdfDocument.tsx gefunden. Details siehe Konsole.`
+          );
+        } else {
+          setPdfError(
+            `Fehler beim Generieren der PDF-Vorschau: ${error.message}`
+          );
+        }
+      } finally {
+        setIsLoadingPdf(false);
+      }
+
+      // Cleanup function
+      return () => {
+        if (generatedUrl) {
+          URL.revokeObjectURL(generatedUrl);
+          console.log("Revoked Cover Letter Blob URL:", generatedUrl);
+        }
+      };
+    };
+
+    generatePdfBlob();
+  }, [content, profile, job, template]);
+
+  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
+    setNumPages(numPages);
+    setCurrentPage(1);
   };
 
-  if (!content || !content.personalDetailsBlock) {
-    return (
-      <Box className="p-8 text-center border rounded-lg bg-gray-50">
-        <Typography variant="body1" color="textSecondary">
-          Anschreiben-Inhalt wird geladen oder konnte nicht generiert werden.
-          Bitte warten oder erneut versuchen.
-        </Typography>
-      </Box>
-    );
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, numPages || 1));
+  };
+
+  if (!isClient) {
+    return <LoadingSpinner message="Vorschau wird vorbereitet..." />;
   }
 
-  const fontFamily =
-    template.style === "formal" ? FONT_FAMILY_FORMAL : FONT_FAMILY_MODERN;
-
-  const cleanMarkdown = (text: string | undefined): string => {
-    return text ? text.replace(/\*\*/g, "") : "";
-  };
+  const pdfFileName = `Anschreiben_${profile?.personalDetails?.firstName || "NoName"}_${profile?.personalDetails?.lastName || "NoName"}_${job ? job.company.replace(/[^a-z0-9]/gi, "_") : "allgemein"}.pdf`;
 
   return (
     <Box>
-      <Box className="mb-4 flex justify-end gap-2">
-        <MuiButton
-          variant="outline"
-          startIcon={<EditIcon />}
-          href={profile.id ? `/profile/edit` : `/profile/create`}
-          size="sm"
-        >
-          Profil bearbeiten
-        </MuiButton>
-        <MuiButton
-          id="cover-letter-download-button"
-          variant="primary"
-          startIcon={
-            isDownloading ? (
-              <CircularProgress size={20} color="inherit" />
-            ) : (
-              <DownloadIcon />
-            )
-          }
-          onClick={handleDownload}
-          disabled={isDownloading}
-          size="sm"
-        >
-          {isDownloading ? "Wird erstellt..." : "Als PDF herunterladen"}
-        </MuiButton>
-      </Box>
-
-      {/* Cover Letter Paper */}
+      {/* PDF Display Area */}
       <Paper
-        elevation={0}
-        ref={coverLetterRef}
-        className="border border-gray-200 rounded-lg max-w-4xl mx-auto bg-white"
         sx={{
-          padding: "25mm", // Standard DIN margins (approx 25mm left/right, 20mm top/bottom often used)
-          width: "210mm",
-          minHeight: "297mm",
-          boxSizing: "border-box",
-          fontFamily: fontFamily,
-          fontSize: BASE_FONT_SIZE,
-          lineHeight: LINE_HEIGHT,
-          color: "#000000",
-          "& *": {
-            fontFamily: "inherit",
-            fontSize: "inherit",
-            lineHeight: "inherit",
-            color: "inherit",
-          },
+          minHeight: "70vh",
+          border: "1px solid #ccc",
+          marginBottom: 2,
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: 1,
         }}
       >
-        {/* Sender Line (Optional, above address block - DIN 5008 Rücksendeangabe) */}
-        <Typography
-          sx={{ fontSize: SMALLER_FONT_SIZE, height: spacing.oneLine }}
-        >
-          {`${profile.personalDetails.firstName} ${profile.personalDetails.lastName} · ${profile.personalDetails.address} · ${profile.personalDetails.postalCode} ${profile.personalDetails.city}`}
-        </Typography>
-        {/* Space before Recipient */}
-        <Box sx={{ height: spacing.twoLines }} /> {/* Simulates empty lines */}
-        {/* Recipient Block */}
-        <Box sx={{ marginBottom: spacing.twoLines, whiteSpace: "pre-line" }}>
-          {/* Render Company Address Block */}
-          {content.companyAddressBlock}
-          {/* Add more lines manually if needed to fill the 6 lines */}
-          {/* Example: Add empty lines if content is short */}
-          {(content.companyAddressBlock?.match(/\n/g) || []).length < 5 && (
-            <Box
-              sx={{
-                height: `${(5 - (content.companyAddressBlock?.match(/\n/g) || []).length) * LINE_HEIGHT}em`,
-              }}
-            />
-          )}
-        </Box>
-        {/* Date Block (Right Aligned) */}
-        <Box sx={{ textAlign: "right", marginBottom: spacing.twoLines }}>
-          {content.date}
-        </Box>
-        {/* Subject Block */}
-        <Typography sx={{ fontWeight: "bold", marginBottom: spacing.twoLines }}>
-          {cleanMarkdown(content.subject)} {/* Clean potential markdown */}
-        </Typography>
-        {/* Salutation */}
-        <Typography sx={{ marginBottom: spacing.oneLine }}>
-          {content.salutation}
-        </Typography>
-        {/* Introduction */}
-        <Typography
-          sx={{ marginBottom: spacing.oneLine, whiteSpace: "pre-line" }}
-        >
-          {content.introduction}
-        </Typography>
-        {/* Main Body Paragraphs */}
-        {typeof content.mainBody === "string" ? (
-          content.mainBody
-            .split(/\n\s*\n/)
-            .map((paragraph: string, index: number) => (
-              <Typography
-                key={`main-${index}`}
-                sx={{ marginBottom: spacing.oneLine, whiteSpace: "pre-line" }}
-              >
-                {paragraph}
-              </Typography>
-            ))
-        ) : (
-          <Typography
-            sx={{ marginBottom: spacing.oneLine, whiteSpace: "pre-line" }}
-          >
-            {content.mainBody}
+        {isLoadingPdf && <LoadingSpinner message="Generiere PDF-Vorschau..." />}
+        {pdfError && (
+          <Typography color="error" sx={{ padding: 2 }}>
+            {pdfError}
           </Typography>
         )}
-        {/* Closing */}
-        {(() => {
-          const closingParts =
-            typeof content.closing === "string"
-              ? content.closing.split(/\n\s*\n/)
-              : [];
-          const greeting = closingParts[0] || "";
-          const name = closingParts[closingParts.length - 1] || "";
 
-          return (
-            <Box sx={{ marginTop: spacing.oneLine }}>
-              <Typography>{greeting}</Typography>
-              <Box sx={{ height: spacing.threeLines }} />{" "}
-              {/* Signature space */}
-              <Typography>{name}</Typography>
-            </Box>
-          );
-        })()}
-        {/* Anlagen (Optional) */}
-        {/* <Box sx={{ marginTop: spacing.oneLine }}>
-            <Typography component="span" sx={{fontWeight: 'bold'}}>Anlagen</Typography>
-         </Box> */}
+        {pdfBlobUrl && !isLoadingPdf && !pdfError && (
+          <PdfDisplayDoc
+            file={pdfBlobUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={(error) =>
+              setPdfError(`Fehler beim Laden des PDF: ${error.message}`)
+            }
+            loading={<LoadingSpinner message="Lade PDF..." />}
+            error={
+              <Typography color="error" sx={{ padding: 2 }}>
+                PDF konnte nicht geladen werden.
+              </Typography>
+            }
+          >
+            <PdfDisplayPage
+              pageNumber={currentPage}
+              width={Math.min(window.innerWidth * 0.8, 800)}
+            />
+          </PdfDisplayDoc>
+        )}
+        {!isLoadingPdf && !pdfBlobUrl && !pdfError && (
+          <Typography sx={{ padding: 2 }}>
+            Keine PDF-Vorschau verfügbar.
+          </Typography>
+        )}
       </Paper>
 
-      {/* Keywords Box */}
-      <Box className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg max-w-4xl mx-auto">
-        {/* ... keywords rendering ... */}
-        <Typography variant="subtitle2" className="mb-2">
-          Verwendete Keywords:
-        </Typography>
-        <Box className="flex flex-wrap gap-1">
-          {content.keywords?.map((keyword: string, index: number) => (
-            <span
-              key={index}
-              className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded"
-            >
-              {keyword}
-            </span>
-          ))}
+      {/* Pagination Controls */}
+      {pdfBlobUrl && !isLoadingPdf && !pdfError && numPages && numPages > 1 && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            mb: 2,
+          }}
+        >
+          <MuiButton
+            size="sm"
+            onClick={handlePreviousPage}
+            disabled={currentPage <= 1}
+          >
+            Zurück
+          </MuiButton>
+          <Typography sx={{ mx: 2 }}>
+            Seite {currentPage} von {numPages}
+          </Typography>
+          <MuiButton
+            size="sm"
+            onClick={handleNextPage}
+            disabled={currentPage >= numPages}
+          >
+            Weiter
+          </MuiButton>
         </Box>
-      </Box>
+      )}
+
+      {/* Download Link */}
+      {content && profile && template && (
+        <PDFDownloadLink
+          document={
+            <CoverLetterPdfDocument
+              profile={profile}
+              job={job}
+              content={content}
+              template={template}
+            />
+          }
+          fileName={pdfFileName}
+          style={{ textDecoration: "none" }}
+        >
+          {({ blob, url, loading, error }) => (
+            <MuiButton
+              variant="primary"
+              size="sm"
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <DownloadIcon />
+                )
+              }
+              disabled={loading || !!error}
+              id="cover-letter-download-button"
+            >
+              {loading ? "Generiere PDF..." : "Als PDF herunterladen"}
+            </MuiButton>
+          )}
+        </PDFDownloadLink>
+      )}
+      {(!content || !profile || !template) && (
+        <Typography variant="caption" color="textSecondary">
+          Warte auf Inhalte für den Download...
+        </Typography>
+      )}
     </Box>
   );
-}
+};
+
+export default CoverLetterPreview;
