@@ -3,6 +3,7 @@ import { UserProfile, Job } from "@/lib/types";
 import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import MuiButton from "@/components/ui/Button";
 import DownloadIcon from "@mui/icons-material/Download";
+import EditIcon from "@mui/icons-material/Edit";
 import { CircularProgress, Box, Typography, Paper } from "@mui/material";
 
 import { pdf, PDFDownloadLink } from "@react-pdf/renderer";
@@ -15,6 +16,8 @@ import {
 } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
+
+import { useCoverLetterGenerator } from "@/providers/CoverLetterGeneratorProvider";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -29,18 +32,19 @@ interface CoverLetterTemplate {
 }
 
 interface CoverLetterPreviewProps {
-  content: any;
   template: CoverLetterTemplate;
   profile: UserProfile;
   job?: Job | null;
 }
 
 const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
-  content,
   template,
   profile,
   job,
 }) => {
+  const { generatedContent, setIsEditing, isEditing } =
+    useCoverLetterGenerator();
+
   const [isClient, setIsClient] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -51,11 +55,14 @@ const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
   useEffect(() => {
     setIsClient(true);
 
-    if (!content || !profile || !template) {
+    if (!generatedContent || !profile || !template) {
       setIsLoadingPdf(false);
-      setPdfError(
-        "Fehlende Daten für die PDF-Generierung (Profil, Inhalt oder Template)."
-      );
+      setPdfBlobUrl(null);
+      if (!profile) setPdfError("Profil-Daten fehlen für die PDF-Generierung.");
+      if (!template)
+        setPdfError("Template-Daten fehlen für die PDF-Generierung.");
+      if (!generatedContent)
+        setPdfError("Kein Inhalt zum Anzeigen oder Bearbeiten vorhanden.");
       return;
     }
 
@@ -65,14 +72,17 @@ const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
       setPdfBlobUrl(null);
       let generatedUrl: string | null = null;
 
-      console.log("Generating Cover Letter PDF blob with content:", content);
+      console.log(
+        "CL_PREVIEW: Generating PDF blob with content:",
+        generatedContent
+      );
 
       try {
         const documentElement = (
           <CoverLetterPdfDocument
             profile={profile}
             job={job}
-            content={content}
+            content={generatedContent}
             template={template}
           />
         );
@@ -80,36 +90,25 @@ const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
         const blob = await pdf(documentElement).toBlob();
         generatedUrl = URL.createObjectURL(blob);
         setPdfBlobUrl(generatedUrl);
-        console.log("Generated Cover Letter Blob URL:", generatedUrl);
+        console.log("CL_PREVIEW: Generated Blob URL:", generatedUrl);
       } catch (error: any) {
-        console.error("Error generating Cover Letter PDF blob:", error);
-        if (
-          error.message &&
-          error.message.toLowerCase().includes("outside <text> component")
-        ) {
-          setPdfError(
-            `Fehler beim Generieren der PDF: Text außerhalb von <Text> in CoverLetterPdfDocument.tsx gefunden. Details siehe Konsole.`
-          );
-        } else {
-          setPdfError(
-            `Fehler beim Generieren der PDF-Vorschau: ${error.message}`
-          );
-        }
+        console.error("CL_PREVIEW: Error generating PDF blob:", error);
+        setPdfError(
+          `Fehler beim Generieren der PDF-Vorschau: ${error.message}`
+        );
       } finally {
         setIsLoadingPdf(false);
       }
-
-      // Cleanup function
       return () => {
         if (generatedUrl) {
           URL.revokeObjectURL(generatedUrl);
-          console.log("Revoked Cover Letter Blob URL:", generatedUrl);
+          console.log("CL_PREVIEW: Revoked Blob URL:", generatedUrl);
         }
       };
     };
 
     generatePdfBlob();
-  }, [content, profile, job, template]);
+  }, [generatedContent, profile, job, template]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -134,20 +133,23 @@ const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
     <Box>
       {/* PDF Display Area */}
       <Paper
+        elevation={0}
         sx={{
           minHeight: "70vh",
-          border: "1px solid #ccc",
+          border: "1px solid",
+          borderColor: "divider",
           marginBottom: 2,
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           padding: 1,
+          bgcolor: "grey.50",
         }}
       >
         {isLoadingPdf && <LoadingSpinner message="Generiere PDF-Vorschau..." />}
-        {pdfError && (
-          <Typography color="error" sx={{ padding: 2 }}>
+        {pdfError && !isLoadingPdf && (
+          <Typography color="error" sx={{ padding: 2, textAlign: "center" }}>
             {pdfError}
           </Typography>
         )}
@@ -209,44 +211,70 @@ const CoverLetterPreview: React.FC<CoverLetterPreviewProps> = ({
         </Box>
       )}
 
-      {/* Download Link */}
-      {content && profile && template && (
-        <PDFDownloadLink
-          document={
-            <CoverLetterPdfDocument
-              profile={profile}
-              job={job}
-              content={content}
-              template={template}
-            />
-          }
-          fileName={pdfFileName}
-          style={{ textDecoration: "none" }}
-        >
-          {({ blob, url, loading, error }) => (
-            <MuiButton
-              variant="primary"
-              size="sm"
-              startIcon={
-                loading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <DownloadIcon />
-                )
-              }
-              disabled={loading || !!error}
-              id="cover-letter-download-button"
-            >
-              {loading ? "Generiere PDF..." : "Als PDF herunterladen"}
-            </MuiButton>
-          )}
-        </PDFDownloadLink>
-      )}
-      {(!content || !profile || !template) && (
-        <Typography variant="caption" color="textSecondary">
-          Warte auf Inhalte für den Download...
-        </Typography>
-      )}
+      {/* Action Buttons Area */}
+      <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 1 }}>
+        {/* --- Edit Button --- */}
+        {generatedContent && !isEditing && (
+          <MuiButton
+            variant="outline"
+            size="sm"
+            startIcon={<EditIcon />}
+            onClick={() => setIsEditing(true)}
+            disabled={isLoadingPdf || !!pdfError}
+          >
+            Bearbeiten
+          </MuiButton>
+        )}
+
+        {/* Download Link/Button */}
+        {generatedContent && profile && template && (
+          <PDFDownloadLink
+            document={
+              <CoverLetterPdfDocument
+                profile={profile}
+                job={job}
+                content={generatedContent}
+                template={template}
+              />
+            }
+            fileName={pdfFileName}
+            style={{ textDecoration: "none" }}
+          >
+            {({
+              blob,
+              url,
+              loading: downloadLoading,
+              error: downloadError,
+            }) => (
+              <MuiButton
+                variant="primary"
+                size="sm"
+                startIcon={
+                  downloadLoading ? (
+                    <CircularProgress size={20} color="inherit" />
+                  ) : (
+                    <DownloadIcon />
+                  )
+                }
+                disabled={
+                  downloadLoading ||
+                  !!downloadError ||
+                  isLoadingPdf ||
+                  !!pdfError
+                }
+                id="cover-letter-download-button"
+              >
+                {downloadLoading ? "Generiere PDF..." : "Als PDF herunterladen"}
+              </MuiButton>
+            )}
+          </PDFDownloadLink>
+        )}
+        {!generatedContent && !isLoadingPdf && !pdfError && (
+          <Typography variant="caption" color="textSecondary">
+            Generiere Inhalt für Vorschau und Download...
+          </Typography>
+        )}
+      </Box>
     </Box>
   );
 };

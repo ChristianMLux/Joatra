@@ -40,6 +40,9 @@ interface CoverLetterGeneratorContextType {
     React.SetStateAction<CoverLetterTemplate | null>
   >;
   generatedContent: any | null;
+  isEditing: boolean;
+  setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
+  updateGeneratedContent: (newContent: any) => void;
   loading: boolean;
   loadJob: (jobId: string) => Promise<void>;
   loadProfile: () => Promise<void>;
@@ -97,6 +100,9 @@ const CoverLetterGeneratorContext =
     selectedTemplate: null,
     setSelectedTemplate: () => {},
     generatedContent: null,
+    isEditing: false,
+    setIsEditing: () => {},
+    updateGeneratedContent: () => {},
     loading: true,
     loadJob: async () => {},
     loadProfile: async () => {},
@@ -118,55 +124,67 @@ export function CoverLetterGeneratorProvider({
     useState<CoverLetterTemplate | null>(null);
   const [generatedContent, setGeneratedContent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    console.log("CL_PROVIDER: Loading templates...");
     const loadTemplates = async () => {
-      console.log("Provider: Loading templates...");
       try {
         const templatesData = await getCoverLetterTemplates();
-        if (templatesData && templatesData.length > 0) {
-          console.log("Provider: Templates loaded from Firestore.");
-          setTemplates(templatesData);
-        } else {
-          console.warn(
-            "Provider: No templates from Firestore, using defaults."
-          );
-          setTemplates(defaultTemplates);
+        if (isMounted) {
+          if (templatesData && templatesData.length > 0) {
+            console.log("CL_PROVIDER: Templates loaded from Firestore.");
+            setTemplates(templatesData);
+          } else {
+            console.warn(
+              "CL_PROVIDER: No templates from Firestore, using defaults."
+            );
+            setTemplates(defaultTemplates);
+          }
         }
       } catch (error) {
         console.error(
-          "Provider: Fehler beim Laden der Anschreiben-Templates:",
+          "CL_PROVIDER: Fehler beim Laden der Anschreiben-Templates:",
           error
         );
         toast.error(
           "Anschreiben-Templates konnten nicht geladen werden. Nutze Fallback."
         );
-        setTemplates(defaultTemplates);
+        if (isMounted) setTemplates(defaultTemplates);
       }
     };
     loadTemplates();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loadProfile = useCallback(async () => {
-    console.log("Provider: loadProfile called", { userId: user?.uid });
+    let isMounted = true;
+    console.log("CL_PROVIDER: loadProfile called. User:", !!user);
     if (!user) {
       setProfile(null);
       setLoading(false);
-      console.log("Provider: No user, profile set to null, loading false.");
+      console.log("CL_PROVIDER: No user, profile set to null, loading false.");
       return;
     }
     setLoading(true);
     try {
       const profileData = await getUserProfile(user.uid);
-      console.log("Provider: Fetched profile data:", profileData);
-      setProfile(profileData);
+      if (isMounted) {
+        console.log("CL_PROVIDER: Fetched profile data:", !!profileData);
+        setProfile(profileData);
+      }
     } catch (error) {
-      console.error("Provider: Fehler beim Laden des Profils:", error);
+      console.error("CL_PROVIDER: Fehler beim Laden des Profils:", error);
       toast.error("Dein Profil konnte nicht geladen werden");
-      setProfile(null);
+      if (isMounted) setProfile(null);
     } finally {
-      console.log("Provider: Finished loading profile, loading false.");
-      setLoading(false);
+      if (isMounted) {
+        console.log("CL_PROVIDER: Finished loading profile, loading false.");
+        setLoading(false);
+      }
     }
   }, [user]);
 
@@ -174,47 +192,69 @@ export function CoverLetterGeneratorProvider({
     loadProfile();
   }, [loadProfile]);
 
-  const loadJob = async (jobId: string) => {
-    console.log("Provider: loadJob called", { jobId });
-    if (!user) return;
-    try {
-      const allJobs = await getJobs(user.uid);
-      const job = allJobs.find((j) => j.id === jobId);
+  const loadJob = useCallback(
+    async (jobId: string) => {
+      let isMounted = true;
+      console.log(
+        `CL_PROVIDER: loadJob called for ID: ${jobId}. User:`,
+        !!user
+      );
+      if (!user) return;
+      try {
+        const allJobs = await getJobs(user.uid);
+        const job = allJobs.find((j) => j.id === jobId);
 
-      if (!job) {
-        toast.error("Stellenanzeige konnte nicht gefunden werden");
-        setSelectedJob(null);
-        return;
+        if (!job) {
+          toast.error("Stellenanzeige konnte nicht gefunden werden");
+          if (isMounted) setSelectedJob(null);
+        } else {
+          console.log("CL_PROVIDER: Job found, setting selectedJob:", job.id);
+          if (isMounted) {
+            setSelectedJob(job);
+            setGeneratedContent(null);
+            setIsEditing(false);
+          }
+        }
+      } catch (error) {
+        console.error(
+          "CL_PROVIDER: Fehler beim Laden der Stellenanzeige:",
+          error
+        );
+        toast.error("Stellenanzeige konnte nicht geladen werden");
+        if (isMounted) setSelectedJob(null);
+      } finally {
       }
-      console.log("Provider: Job found:", job);
-      setSelectedJob(job);
-    } catch (error) {
-      console.error("Provider: Fehler beim Laden der Stellenanzeige:", error);
-      toast.error("Stellenanzeige konnte nicht geladen werden");
-      setSelectedJob(null);
-    }
-  };
+    },
+    [user]
+  );
 
-  const selectTemplate = (templateId: string) => {
-    console.log("Provider: selectTemplate called", { templateId });
-    const template = templates.find((t) => t.id === templateId);
-    if (template) {
-      console.log("Provider: Template selected:", template);
-      setSelectedTemplate(template);
-      setGeneratedContent(null);
-    } else {
-      console.warn("Provider: Template ID not found:", templateId);
-    }
-  };
+  const selectTemplate = useCallback(
+    (templateId: string) => {
+      console.log(`CL_PROVIDER: selectTemplate called for ID: ${templateId}`);
+      const template = templates.find((t) => t.id === templateId);
+      if (template) {
+        setSelectedTemplate(template);
+        setGeneratedContent(null);
+        setIsEditing(false);
+        console.log("CL_PROVIDER: Template selected:", template.id);
+      } else {
+        console.warn(`CL_PROVIDER: Template ID ${templateId} not found`);
+      }
+    },
+    [templates]
+  );
 
-  const generateContent = async () => {
-    console.log("Provider: generateContent called");
+  const generateContent = useCallback(async () => {
+    console.log("CL_PROVIDER: generateContent called");
     if (!profile || !selectedTemplate) {
       toast.error("Profil oder Template fehlt für die Anschreiben-Generierung");
-      console.error("Provider: generateContent - Missing profile or template", {
-        profile,
-        selectedTemplate,
-      });
+      console.error(
+        "CL_PROVIDER: generateContent - Missing profile or template",
+        {
+          profile: !!profile,
+          selectedTemplate: !!selectedTemplate,
+        }
+      );
       return;
     }
 
@@ -232,20 +272,22 @@ export function CoverLetterGeneratorProvider({
     try {
       serializedPayload = serializeObjectForServerAction(payload);
       console.log(
-        "Provider: Calling generateCoverLetterAction with serialized payload:",
+        "CL_PROVIDER: Calling generateCoverLetterAction with serialized payload:",
         serializedPayload
       );
     } catch (error) {
-      console.error("Error serializing payload for Server Action:", error);
+      console.error("CL_PROVIDER: Error serializing payload:", error);
       toast.error("Fehler bei der Vorbereitung der Daten für den Server.");
       return;
     }
 
+    setLoading(true);
     setGeneratedContent(null);
+    setIsEditing(false);
 
     try {
       const result = await generateCoverLetterAction(serializedPayload);
-      console.log("Provider: Received result from Server Action:", result);
+      console.log("CL_PROVIDER: Received result from Server Action:", result);
 
       if (result.success && result.content) {
         setGeneratedContent(result.content);
@@ -258,13 +300,22 @@ export function CoverLetterGeneratorProvider({
       }
     } catch (error) {
       console.error(
-        "Provider: Fehler bei der Anschreiben-Generierung (Server Action Call):",
+        "CL_PROVIDER: Fehler bei der Anschreiben-Generierung (Action Call):",
         error
       );
       toast.error("Ein unerwarteter Fehler ist aufgetreten.");
       setGeneratedContent(null);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [profile, selectedJob, selectedTemplate]);
+
+  const updateGeneratedContent = useCallback((newContent: any) => {
+    console.log("CL_PROVIDER: updateGeneratedContent called.");
+    setGeneratedContent(newContent);
+    setIsEditing(false);
+    toast.success("Änderungen am Anschreiben gespeichert.");
+  }, []);
 
   return (
     <CoverLetterGeneratorContext.Provider
@@ -277,6 +328,11 @@ export function CoverLetterGeneratorProvider({
         selectedTemplate,
         setSelectedTemplate,
         generatedContent,
+        // -- NEW --
+        isEditing,
+        setIsEditing,
+        updateGeneratedContent,
+        // ---------
         loading,
         loadJob,
         loadProfile,

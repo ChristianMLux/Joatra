@@ -11,6 +11,7 @@ import Title from "@/components/ui/Title";
 import MuiButton from "@/components/ui/Button";
 import CVTemplateSelector from "./CVTemplateSelector";
 import CVJobSelector from "./CVJobSelector";
+import CVContentEditor from "./CVContentEditor";
 import {
   Box,
   Typography,
@@ -33,6 +34,7 @@ const CVPreview = dynamic(() => import("./CVPreview"), {
         justifyContent: "center",
         alignItems: "center",
         p: 4,
+        minHeight: "50vh",
       }}
     >
       <CircularProgress />
@@ -45,10 +47,11 @@ type Step = "job" | "template" | "preview";
 
 export default function CVGenerator() {
   const { user } = useAuth();
-  const { jobs } = useJobs();
+  const { jobs, loading: jobsLoading } = useJobs();
   const {
     profile,
     selectedJob,
+    setSelectedJob,
     templates,
     selectedTemplate,
     generatedContent,
@@ -57,98 +60,156 @@ export default function CVGenerator() {
     loadProfile,
     selectTemplate,
     generateContent,
+    isEditing,
   } = useCVGenerator();
 
-  console.log(templates);
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialJobId = searchParams.get("jobId");
 
   const [currentStep, setCurrentStep] = useState<Step>("job");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [componentLoading, setComponentLoading] = useState(true);
 
-  console.log("--- CVGenerator Render ---", {
-    currentStep,
-    selectedJobId: selectedJob?.id,
+  console.log(
+    `--- CVGenerator Render --- Step: ${currentStep}, Job: ${selectedJob?.id}, Template: ${selectedTemplate?.id}, URL JobId: ${initialJobId}, CVLoading: ${cvLoading}, JobsLoading: ${jobsLoading}`
+  );
+
+  // Effect 1: Initialize profile and load initial job based on URL
+  useEffect(() => {
+    console.log(
+      "CVGEN: Effect 1 (Init Profile/Job) running. User:",
+      !!user,
+      "URL JobId:",
+      initialJobId
+    );
+    if (user && !profile && !cvLoading) {
+      console.log("CVGEN: Effect 1 - Calling loadProfile");
+      loadProfile();
+    }
+
+    if (initialJobId) {
+      if (!selectedJob || selectedJob.id !== initialJobId) {
+        console.log(`CVGEN: Effect 1 - Calling loadJob for ${initialJobId}`);
+        loadJob(initialJobId);
+      }
+    } else {
+      if (selectedJob) {
+        console.log(
+          "CVGEN: Effect 1 - Clearing selectedJob because no URL JobId"
+        );
+        setSelectedJob(null);
+      }
+    }
+  }, [
+    user,
     initialJobId,
-    componentLoading,
+    loadProfile,
+    loadJob,
+    selectedJob,
+    setSelectedJob,
+    profile,
     cvLoading,
-    isGenerating,
-  });
+  ]);
 
+  // Effect 2: Auto-advance or reset step based on selectedJob
   useEffect(() => {
-    const initialize = async () => {
-      if (!user) {
-        setComponentLoading(false);
-        return;
-      }
-      setComponentLoading(true);
+    console.log(
+      `CVGEN: Effect 2 (Step Control) running. Step: ${currentStep}, Job: ${selectedJob?.id}, CVLoading: ${cvLoading}, JobsLoading: ${jobsLoading}`
+    );
 
-      try {
-        await loadProfile();
-
-        if (initialJobId) {
-          await loadJob(initialJobId);
-        }
-      } catch (error) {
-        toast.error("Error during initialization:", error ? error : "");
-      } finally {
-        setComponentLoading(false);
-      }
-    };
-
-    initialize();
-  }, [user, initialJobId]);
-
-  useEffect(() => {
-    if (selectedJob && currentStep === "job" && !componentLoading) {
+    if (selectedJob && currentStep === "job" && !cvLoading && !jobsLoading) {
+      console.log("CVGEN: Effect 2 - Advancing to 'template' step.");
       setCurrentStep("template");
     }
-  }, [selectedJob, profile, currentStep, componentLoading]);
 
-  const handleJobSelect = (job: Job) => {
-    router.push(`/cv-generator?jobId=${job.id}`, { scroll: false });
-  };
+    if (
+      !selectedJob &&
+      (currentStep === "template" || currentStep === "preview")
+    ) {
+      console.log(
+        "CVGEN: Effect 2 - Resetting to 'job' step because job is null."
+      );
+      setCurrentStep("job");
+    }
+  }, [selectedJob, currentStep, cvLoading, jobsLoading]);
 
-  const handleTemplateSelect = (template: CVTemplate) => {
-    selectTemplate(template.id);
-  };
+  const handleJobSelect = useCallback(
+    (job: Job) => {
+      console.log(`CVGEN: handleJobSelect called for Job ID: ${job.id}`);
+      router.push(`/cv-generator?jobId=${job.id}`, { scroll: false });
+    },
+    [router]
+  );
 
-  const handleNext = async () => {
+  const handleTemplateSelect = useCallback(
+    (template: CVTemplate) => {
+      console.log(
+        `CVGEN: handleTemplateSelect called for Template ID: ${template.id}`
+      );
+      selectTemplate(template.id);
+    },
+    [selectTemplate]
+  );
+
+  const handleNext = useCallback(async () => {
+    console.log(`CVGEN: handleNext called. Current Step: ${currentStep}`);
     if (currentStep === "job" && selectedJob) {
+      console.log("CVGEN: handleNext - Moving job -> template");
       setCurrentStep("template");
     } else if (currentStep === "template" && selectedTemplate) {
+      console.log("CVGEN: handleNext - Moving template -> preview");
       if (!generatedContent) {
+        console.log("CVGEN: handleNext - Calling generateContent");
         setIsGenerating(true);
-        await generateContent();
-        setIsGenerating(false);
+        try {
+          await generateContent();
+        } finally {
+          setIsGenerating(false);
+        }
+      } else {
+        console.log(
+          "CVGEN: handleNext - Content already generated, skipping generation."
+        );
       }
       setCurrentStep("preview");
     }
-  };
+  }, [
+    currentStep,
+    selectedJob,
+    selectedTemplate,
+    generatedContent,
+    generateContent,
+  ]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
+    console.log(`CVGEN: handleBack called. Current Step: ${currentStep}`);
     if (currentStep === "template") {
+      console.log("CVGEN: handleBack - Moving template -> job");
       router.push("/cv-generator", { scroll: false });
-      setCurrentStep("job");
     } else if (currentStep === "preview") {
+      console.log("CVGEN: handleBack - Moving preview -> template");
       setCurrentStep("template");
     }
-  };
+  }, [currentStep, router]);
 
   const isNextDisabled = () => {
     if (currentStep === "job" && !selectedJob) return true;
     if (currentStep === "template" && !selectedTemplate) return true;
-    if (isGenerating || cvLoading || componentLoading) return true;
+    if (isGenerating || cvLoading || jobsLoading) return true;
     return false;
   };
 
-  if (componentLoading && !profile) {
+  if (cvLoading && !profile) {
+    console.log(
+      "CVGEN: Render - Showing initial loading spinner (cvLoading && !profile)"
+    );
     return <LoadingSpinner message="Daten werden geladen..." />;
   }
 
-  if (!profile) {
+  if (!profile && !cvLoading) {
+    console.log(
+      "CVGEN: Render - No profile found after loading, showing create profile message."
+    );
     return (
       <Box className="max-w-4xl mx-auto text-center py-12">
         <Title text="Kein Profil gefunden" className="mb-6" />
@@ -171,10 +232,8 @@ export default function CVGenerator() {
     <div className="max-w-6xl mx-auto">
       <Title text="CV-Generator" className="mb-6" />
 
-      <Paper
-        elevation={0}
-        className="mb-8 p-6 rounded-lg border border-gray-200"
-      >
+      {/* Stepper Component */}
+      <Paper>
         <Stepper
           activeStep={
             currentStep === "job" ? 0 : currentStep === "template" ? 1 : 2
@@ -182,34 +241,34 @@ export default function CVGenerator() {
           alternativeLabel
         >
           <Step key="job-step">
-            <StepLabel>Stelle auswählen</StepLabel>
+            <StepLabel>Stelle auswählen (Optional)</StepLabel>
           </Step>
           <Step key="template-step">
             <StepLabel>Template auswählen</StepLabel>
           </Step>
           <Step key="preview-step">
-            <StepLabel>CV-Vorschau</StepLabel>
+            <StepLabel>Vorschau & Bearbeiten</StepLabel>
           </Step>
         </Stepper>
       </Paper>
 
+      {/* Informational Alert */}
       <Alert severity="info" className="mb-6">
-        Mit diesem Generator erstellst du einen ATS-optimierten Lebenslauf, der
-        auf eine bestimmte Stelle zugeschnitten ist. Die relevanten Keywords
-        werden automatisch extrahiert und deine Fähigkeiten entsprechend
-        priorisiert.
+        Mit diesem Generator erstellst du einen ATS-optimierten Lebenslauf... Du
+        kannst den generierten Text anschließend bearbeiten.
       </Alert>
 
+      {/* Step 1: Job Selection */}
       {currentStep === "job" && (
         <Box className="mb-6">
           <Typography variant="h5" component="h2" gutterBottom>
-            1. Wähle eine Stelle aus
+            1. Wähle eine Stelle aus (Optional)
           </Typography>
           <Typography variant="body1" color="textSecondary" paragraph>
-            Für welche deiner gespeicherten Stellen möchtest du einen Lebenslauf
-            generieren?
+            Wähle eine deiner gespeicherten Stellen... allgemeinen Lebenslauf zu
+            erstellen.
           </Typography>
-          {useJobs().loading ? (
+          {jobsLoading ? (
             <LoadingSpinner message="Jobs werden geladen..." />
           ) : (
             <CVJobSelector
@@ -218,9 +277,18 @@ export default function CVGenerator() {
               onSelect={handleJobSelect}
             />
           )}
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
+            <MuiButton
+              variant="secondary"
+              onClick={() => setCurrentStep("template")}
+            >
+              Ohne Jobauswahl fortfahren
+            </MuiButton>
+          </Box>
         </Box>
       )}
 
+      {/* Step 2: Template Selection */}
       {currentStep === "template" && (
         <Box className="mb-6">
           <Typography variant="h5" component="h2" gutterBottom>
@@ -229,7 +297,7 @@ export default function CVGenerator() {
           <Typography variant="body1" color="textSecondary" paragraph>
             Wähle ein passendes Design für deinen Lebenslauf.
           </Typography>
-          {cvLoading ? (
+          {cvLoading && !templates.length ? (
             <LoadingSpinner message="Templates werden geladen..." />
           ) : (
             <CVTemplateSelector
@@ -241,50 +309,64 @@ export default function CVGenerator() {
         </Box>
       )}
 
-      {currentStep === "preview" && (
-        <Box className="mb-6">
-          <Typography variant="h5" component="h2" gutterBottom>
-            3. Vorschau und Download
-          </Typography>
-          <Typography variant="body1" color="textSecondary" paragraph>
-            Überprüfe deinen generierten Lebenslauf. Du kannst ihn herunterladen
-            oder zurückgehen, um Änderungen vorzunehmen.
-          </Typography>
+      {/* Step 3: Preview and Edit */}
+      {currentStep === "preview" &&
+        (() => {
+          {
+            console.log(
+              "CVGEN: Render - Rendering Preview Step Content. Content:",
+              !!generatedContent,
+              "Template:",
+              !!selectedTemplate,
+              "Profile:",
+              !!profile
+            );
+          }
 
-          {isGenerating || !generatedContent ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                p: 4,
-              }}
-            >
-              <CircularProgress />
-              <Typography sx={{ ml: 2 }}>
-                Lebenslauf wird generiert...
+          return (
+            <Box className="mb-6">
+              <Typography variant="h5" component="h2" gutterBottom>
+                3. Vorschau, Bearbeiten und Download
               </Typography>
-            </Box>
-          ) : (
-            <CVPreview
-              content={generatedContent}
-              template={selectedTemplate!}
-              profile={profile!}
-              job={selectedJob}
-            />
-          )}
-        </Box>
-      )}
+              <Typography variant="body1" color="textSecondary" paragraph>
+                Überprüfe deinen generierten Lebenslauf...
+              </Typography>
 
+              {isGenerating || (cvLoading && !generatedContent) ? (
+                <Box>
+                  <CircularProgress />
+                  <Typography sx={{ ml: 2 }}>
+                    {isGenerating
+                      ? "Lebenslauf wird generiert..."
+                      : "Lade Inhalt..."}
+                  </Typography>
+                </Box>
+              ) : generatedContent && selectedTemplate && profile ? (
+                <CVPreview
+                  template={selectedTemplate}
+                  profile={profile}
+                  job={selectedJob}
+                />
+              ) : (
+                !isGenerating &&
+                !cvLoading && (
+                  <Typography sx={{ textAlign: "center", my: 5 }}>
+                    Kein Inhalt zum Anzeigen. Bitte gehe zurück und wähle ein
+                    Template aus oder generiere den Inhalt.
+                  </Typography>
+                )
+              )}
+            </Box>
+          );
+        })()}
+
+      {/* Navigation Buttons */}
       <Box className="flex justify-between mt-8">
         <MuiButton
           variant="outline"
           onClick={handleBack}
           disabled={
-            currentStep === "job" ||
-            isGenerating ||
-            cvLoading ||
-            componentLoading
+            currentStep === "job" || isGenerating || cvLoading || jobsLoading
           }
         >
           Zurück
@@ -294,7 +376,12 @@ export default function CVGenerator() {
           <MuiButton
             variant="primary"
             onClick={handleNext}
-            disabled={isNextDisabled()}
+            disabled={
+              (currentStep === "template" && !selectedTemplate) ||
+              isGenerating ||
+              cvLoading ||
+              jobsLoading
+            }
             isLoading={isGenerating}
           >
             {isGenerating ? "Generiere..." : "Weiter"}
@@ -302,20 +389,15 @@ export default function CVGenerator() {
         ) : (
           <MuiButton
             variant="primary"
-            onClick={() => {
-              const downloadButton = document.querySelector(
-                "#cv-download-button"
-              ) as HTMLButtonElement;
-              downloadButton?.click();
-            }}
-            disabled={
-              isGenerating || !generatedContent || cvLoading || componentLoading
-            }
+            disabled={true}
+            sx={{ visibility: "hidden" }}
           >
-            Herunterladen
+            Weiter
           </MuiButton>
         )}
       </Box>
+
+      <CVContentEditor />
     </div>
   );
 }
