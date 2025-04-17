@@ -23,7 +23,7 @@ interface CoverLetterTemplate {
 
 interface CoverLetterTemplateSelectorProps {
   templates: CoverLetterTemplate[];
-  selectedTemplateId?: string;
+  selectedTemplateId?: string | null;
   onSelect: (template: CoverLetterTemplate) => void;
 }
 
@@ -32,11 +32,11 @@ export default function CoverLetterTemplateSelector({
   selectedTemplateId,
   onSelect,
 }: CoverLetterTemplateSelectorProps) {
-  const displayTemplates = templates;
+  const displayTemplates = templates || [];
 
   if (displayTemplates.length === 0) {
     return (
-      <Box className="p-8 text-center border rounded-lg bg-gray-50">
+      <Box className="p-8 text-center border rounded-lg bg-gray-50 dark:bg-gray-800">
         <Typography variant="body1" color="textSecondary">
           Keine Templates verfügbar.
         </Typography>
@@ -47,41 +47,49 @@ export default function CoverLetterTemplateSelector({
   return (
     <Grid container spacing={3}>
       {displayTemplates.map((template) => (
-        <Grid key={template.id}>
+        <Grid
+          key={template.id}
+          sx={{ width: { xs: "100%", sm: "50%", md: "33.33%", lg: "25%" } }}
+        >
           <Card
             elevation={0}
-            className={`border ${selectedTemplateId === template.id ? "border-blue-500" : "border-gray-200"} rounded-lg transition-all`}
+            className={`border rounded-lg transition-all h-full flex flex-col ${selectedTemplateId === template.id ? "border-blue-500" : "border-gray-200 dark:border-gray-700"} hover:border-blue-400 dark:hover:border-blue-500`}
             sx={{
               boxShadow:
                 selectedTemplateId === template.id
                   ? "0 0 0 2px rgba(59, 130, 246, 0.5)"
                   : "none",
-              "&:hover": {
-                borderColor:
-                  selectedTemplateId === template.id
-                    ? "rgb(59, 130, 246)"
-                    : "rgb(209, 213, 219)",
-              },
             }}
           >
-            <CardActionArea onClick={() => onSelect(template)}>
+            <CardActionArea
+              onClick={() => onSelect(template)}
+              className="flex flex-col flex-grow"
+            >
               <CardMedia
                 component="img"
-                height="180"
+                sx={{
+                  aspectRatio: "3/4",
+                  backgroundColor: "grey.100",
+                  objectFit: "contain",
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
+                  p: 1,
+                }}
                 image={`/assets/templates/cover-letter-${template.id}.png`}
                 alt={template.name}
-                sx={{
-                  backgroundColor: "gray.100",
-                  objectFit: "contain",
-                }}
                 onError={(e: any) => {
+                  e.target.onerror = null;
                   e.target.src =
                     "/assets/templates/cover-letter-placeholder.png";
                 }}
               />
-              <CardContent className="p-5">
+              <CardContent className="p-4 flex flex-col flex-grow">
                 <Box className="flex justify-between items-start mb-2">
-                  <Typography variant="h6" component="h3">
+                  <Typography
+                    variant="h6"
+                    component="h3"
+                    className="text-base font-semibold"
+                  >
                     {template.name}
                   </Typography>
                   <Chip
@@ -91,18 +99,35 @@ export default function CoverLetterTemplateSelector({
                     variant="outlined"
                   />
                 </Box>
-                <Typography variant="body2" color="textSecondary">
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  className="text-sm mb-3 flex-grow"
+                >
                   {template.description}
                 </Typography>
-                <Box className="mt-3 flex flex-wrap gap-1">
+                <Box className="mt-auto flex flex-wrap gap-1 pt-2">
                   {template.atsOptimized && (
-                    <Chip label="ATS-optimiert" size="small" color="success" />
+                    <Chip
+                      label="ATS-optimiert"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                    />
                   )}
                   {template.din5008Compliant && (
-                    <Chip label="DIN 5008" size="small" color="info" />
+                    <Chip
+                      label="DIN 5008"
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                    />
                   )}
                   <Chip
-                    label={template.style}
+                    label={
+                      template.style.charAt(0).toUpperCase() +
+                      template.style.slice(1)
+                    }
                     size="small"
                     variant="outlined"
                   />
