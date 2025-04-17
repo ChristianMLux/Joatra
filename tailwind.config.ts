@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
@@ -13,11 +14,14 @@ const config: Config = {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
     },
     extend: {
+      screens: {
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
+      },
       boxShadow: {
         "mat-flat":
           "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px",
@@ -35,12 +39,10 @@ const config: Config = {
           "linear-gradient(to right, rgba(167, 139, 250, 0.05), rgba(236, 72, 153, 0.05), rgba(239, 68, 68, 0.05))",
         "purple-gradient-l":
           "linear-gradient(to left, rgba(167, 139, 250, 0.05), rgba(236, 72, 153, 0.05), rgba(239, 68, 68, 0.05))",
-
         "purple-gradient-r-10":
           "linear-gradient(to right, rgba(167, 139, 250, 0.1), rgba(236, 72, 153, 0.1), rgba(239, 68, 68, 0.1))",
         "purple-gradient-l-10":
           "linear-gradient(to left, rgba(167, 139, 250, 0.1), rgba(236, 72, 153, 0.1), rgba(239, 68, 68, 0.1))",
-
         "purple-gradient-r-20":
           "linear-gradient(to right, rgba(167, 139, 250, 0.2), rgba(236, 72, 153, 0.2), rgba(239, 68, 68, 0.2))",
         "purple-gradient-l-20":
@@ -126,7 +128,7 @@ const config: Config = {
       },
     },
   },
-
+  plugins: [],
   future: {
     hoverOnlyWhenSupported: true,
   },
