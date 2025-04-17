@@ -13,6 +13,7 @@ import ViewToggle from "@/components/jobs/ViewToggle";
 import MuiButton from "@/components/ui/Button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Job } from "@/lib/types";
+import PdfExportButton from "@/components/jobs/PdfExportButton";
 
 function JobDashboardContent() {
   const { jobs, loading: jobsLoading, refresh } = useJobs();
@@ -67,7 +68,9 @@ function JobDashboardContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <PdfExportButton jobs={sortedJobs} />
             <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
+
             <MuiButton
               variant="outline"
               size="sm"
