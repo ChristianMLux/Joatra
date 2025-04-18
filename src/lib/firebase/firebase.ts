@@ -4,7 +4,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  User,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -19,10 +18,17 @@ import {
   deleteDoc,
   orderBy,
   serverTimestamp,
-  Timestamp,
   limit,
 } from "firebase/firestore";
-import { Job, Recruiter, UserProfile, CVTemplate, GeneratedCV } from "../types";
+import {
+  Job,
+  Recruiter,
+  UserProfile,
+  CVTemplate,
+  GeneratedCV,
+  CoverLetterTemplate,
+  GeneratedCoverLetter,
+} from "../types";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -39,6 +45,7 @@ const app =
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// --- Auth Functions ---
 export const loginWithEmail = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
 };
@@ -51,31 +58,13 @@ export const logout = async () => {
   return signOut(auth);
 };
 
+// --- Job Functions ---
 export const addJob = async (
   userId: string,
   jobData: Omit<Job, "id" | "userId" | "createdAt" | "updatedAt">
 ) => {
-  const sanitizeData = (obj: any): any => {
-    if (obj === undefined) return null;
-    if (obj === null || typeof obj !== "object") return obj;
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => sanitizeData(item));
-    }
-
-    const sanitized: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeData(value);
-    }
-
-    return sanitized;
-  };
-
-  const sanitizedJobData = sanitizeData(jobData);
-
   return addDoc(collection(db, "jobs"), {
-    ...sanitizedJobData,
+    ...jobData,
     userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -88,46 +77,21 @@ export const getJobs = async (userId: string): Promise<Job[]> => {
     where("userId", "==", userId),
     orderBy("createdAt", "desc")
   );
-
   const querySnapshot = await getDocs(q);
   const jobs: Job[] = [];
-
   querySnapshot.forEach((doc) => {
-    jobs.push({
-      id: doc.id,
-      ...doc.data(),
-    } as Job);
+    jobs.push({ id: doc.id, ...doc.data() } as Job);
   });
-
   return jobs;
-};
-
-const sanitizeData = (obj: any): any => {
-  if (obj === undefined) return null;
-  if (obj === null || typeof obj !== "object") return obj;
-
-  if (Array.isArray(obj)) {
-    return obj.map((item) => sanitizeData(item));
-  }
-
-  const sanitized: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    sanitized[key] = sanitizeData(value);
-  }
-
-  return sanitized;
 };
 
 export const updateJob = async (
   jobId: string,
   jobData: Partial<Omit<Job, "id" | "userId" | "createdAt" | "updatedAt">>
 ) => {
-  const sanitizedJobData = sanitizeData(jobData);
-
   const jobRef = doc(db, "jobs", jobId);
   return updateDoc(jobRef, {
-    ...sanitizedJobData,
+    ...jobData,
     updatedAt: serverTimestamp(),
   });
 };
@@ -135,76 +99,6 @@ export const updateJob = async (
 export const deleteJob = async (jobId: string) => {
   const jobRef = doc(db, "jobs", jobId);
   return deleteDoc(jobRef);
-};
-
-export const addRecruiter = async (
-  userId: string,
-  recruiterData: Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
-) => {
-  const sanitizedData = sanitizeData(recruiterData);
-
-  return addDoc(collection(db, "recruiters"), {
-    ...sanitizedData,
-    userId,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-};
-
-export const getRecruiters = async (userId: string): Promise<Recruiter[]> => {
-  const q = query(
-    collection(db, "recruiters"),
-    where("userId", "==", userId),
-    orderBy("name", "asc")
-  );
-
-  const querySnapshot = await getDocs(q);
-  const recruiters: Recruiter[] = [];
-
-  querySnapshot.forEach((doc) => {
-    recruiters.push({
-      id: doc.id,
-      ...doc.data(),
-    } as Recruiter);
-  });
-
-  return recruiters;
-};
-
-export const getRecruiter = async (
-  recruiterId: string
-): Promise<Recruiter | null> => {
-  const recruiterRef = doc(db, "recruiters", recruiterId);
-  const recruiterSnap = await getDoc(recruiterRef);
-
-  if (recruiterSnap.exists()) {
-    return {
-      id: recruiterSnap.id,
-      ...recruiterSnap.data(),
-    } as Recruiter;
-  }
-
-  return null;
-};
-
-export const updateRecruiter = async (
-  recruiterId: string,
-  recruiterData: Partial<
-    Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
-  >
-) => {
-  const sanitizedData = sanitizeData(recruiterData);
-
-  const recruiterRef = doc(db, "recruiters", recruiterId);
-  return updateDoc(recruiterRef, {
-    ...sanitizedData,
-    updatedAt: serverTimestamp(),
-  });
-};
-
-export const deleteRecruiter = async (recruiterId: string) => {
-  const recruiterRef = doc(db, "recruiters", recruiterId);
-  return deleteDoc(recruiterRef);
 };
 
 export const getJobsByRecruiter = async (
@@ -217,28 +111,77 @@ export const getJobsByRecruiter = async (
     where("recruiterId", "==", recruiterId),
     orderBy("applicationDate", "desc")
   );
-
   const querySnapshot = await getDocs(q);
   const jobs: Job[] = [];
-
   querySnapshot.forEach((doc) => {
-    jobs.push({
-      id: doc.id,
-      ...doc.data(),
-    } as Job);
+    jobs.push({ id: doc.id, ...doc.data() } as Job);
   });
-
   return jobs;
 };
 
+// --- Recruiter Functions ---
+export const addRecruiter = async (
+  userId: string,
+  recruiterData: Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
+) => {
+  return addDoc(collection(db, "recruiters"), {
+    ...recruiterData,
+    userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const getRecruiters = async (userId: string): Promise<Recruiter[]> => {
+  const q = query(
+    collection(db, "recruiters"),
+    where("userId", "==", userId),
+    orderBy("name", "asc")
+  );
+  const querySnapshot = await getDocs(q);
+  const recruiters: Recruiter[] = [];
+  querySnapshot.forEach((doc) => {
+    recruiters.push({ id: doc.id, ...doc.data() } as Recruiter);
+  });
+  return recruiters;
+};
+
+export const getRecruiter = async (
+  recruiterId: string
+): Promise<Recruiter | null> => {
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  const recruiterSnap = await getDoc(recruiterRef);
+  if (recruiterSnap.exists()) {
+    return { id: recruiterSnap.id, ...recruiterSnap.data() } as Recruiter;
+  }
+  return null;
+};
+
+export const updateRecruiter = async (
+  recruiterId: string,
+  recruiterData: Partial<
+    Omit<Recruiter, "id" | "userId" | "createdAt" | "updatedAt">
+  >
+) => {
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  return updateDoc(recruiterRef, {
+    ...recruiterData,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const deleteRecruiter = async (recruiterId: string) => {
+  const recruiterRef = doc(db, "recruiters", recruiterId);
+  return deleteDoc(recruiterRef);
+};
+
+// --- Profile Functions ---
 export const createUserProfile = async (
   userId: string,
   profileData: Omit<UserProfile, "id" | "userId" | "createdAt" | "updatedAt">
 ) => {
-  const sanitizedData = sanitizeData(profileData);
-
   return addDoc(collection(db, "profiles"), {
-    ...sanitizedData,
+    ...profileData,
     userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -253,19 +196,13 @@ export const getUserProfile = async (
     where("userId", "==", userId),
     limit(1)
   );
-
   const querySnapshot = await getDocs(q);
-
   if (querySnapshot.empty) {
     return null;
   }
-
   const profileDoc = querySnapshot.docs[0];
-
-  return {
-    id: profileDoc.id,
-    ...profileDoc.data(),
-  } as UserProfile;
+  const profileData = profileDoc.data();
+  return { id: profileDoc.id, ...profileData } as UserProfile;
 };
 
 export const updateUserProfile = async (
@@ -274,30 +211,21 @@ export const updateUserProfile = async (
     Omit<UserProfile, "id" | "userId" | "createdAt" | "updatedAt">
   >
 ) => {
-  const sanitizedData = sanitizeData(profileData);
-
   const profileRef = doc(db, "profiles", profileId);
   return updateDoc(profileRef, {
-    ...sanitizedData,
+    ...profileData,
     updatedAt: serverTimestamp(),
   });
 };
 
-// CV-Templates
-
+// --- CV Template Functions ---
 export const getCVTemplates = async (): Promise<CVTemplate[]> => {
   const q = query(collection(db, "cvTemplates"));
   const querySnapshot = await getDocs(q);
-
   const templates: CVTemplate[] = [];
-
   querySnapshot.forEach((doc) => {
-    templates.push({
-      id: doc.id,
-      ...doc.data(),
-    } as CVTemplate);
+    templates.push({ id: doc.id, ...doc.data() } as CVTemplate);
   });
-
   return templates;
 };
 
@@ -306,33 +234,24 @@ export const getCVTemplate = async (
 ): Promise<CVTemplate | null> => {
   const templateRef = doc(db, "cvTemplates", templateId);
   const templateSnap = await getDoc(templateRef);
-
   if (templateSnap.exists()) {
-    return {
-      id: templateSnap.id,
-      ...templateSnap.data(),
-    } as CVTemplate;
+    return { id: templateSnap.id, ...templateSnap.data() } as CVTemplate;
   }
-
   return null;
 };
 
-// Generierte CVs
-
+// --- Generated CV Functions ---
 export const createGeneratedCV = async (
   userId: string,
   cvData: Omit<GeneratedCV, "id" | "userId" | "createdAt" | "updatedAt">
 ) => {
-  const sanitizedData = sanitizeData(cvData);
-
   return addDoc(collection(db, "generatedCVs"), {
-    ...sanitizedData,
+    ...cvData,
     userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 };
-
 export const getGeneratedCVs = async (
   userId: string
 ): Promise<GeneratedCV[]> => {
@@ -341,79 +260,38 @@ export const getGeneratedCVs = async (
     where("userId", "==", userId),
     orderBy("createdAt", "desc")
   );
-
   const querySnapshot = await getDocs(q);
   const cvs: GeneratedCV[] = [];
-
   querySnapshot.forEach((doc) => {
-    cvs.push({
-      id: doc.id,
-      ...doc.data(),
-    } as GeneratedCV);
+    cvs.push({ id: doc.id, ...doc.data() } as GeneratedCV);
   });
-
   return cvs;
 };
-
 export const getGeneratedCV = async (
   cvId: string
 ): Promise<GeneratedCV | null> => {
   const cvRef = doc(db, "generatedCVs", cvId);
   const cvSnap = await getDoc(cvRef);
-
   if (cvSnap.exists()) {
-    return {
-      id: cvSnap.id,
-      ...cvSnap.data(),
-    } as GeneratedCV;
+    return { id: cvSnap.id, ...cvSnap.data() } as GeneratedCV;
   }
-
   return null;
 };
-
 export const updateGeneratedCV = async (
   cvId: string,
   cvData: Partial<
     Omit<GeneratedCV, "id" | "userId" | "createdAt" | "updatedAt">
   >
 ) => {
-  const sanitizedData = sanitizeData(cvData);
-
   const cvRef = doc(db, "generatedCVs", cvId);
-  return updateDoc(cvRef, {
-    ...sanitizedData,
-    updatedAt: serverTimestamp(),
-  });
+  return updateDoc(cvRef, { ...cvData, updatedAt: serverTimestamp() });
 };
-
 export const deleteGeneratedCV = async (cvId: string) => {
   const cvRef = doc(db, "generatedCVs", cvId);
   return deleteDoc(cvRef);
 };
 
-interface CoverLetterTemplate {
-  id: string;
-  name: string;
-  description: string;
-  language: "de" | "en";
-  style: "formal" | "modern" | "creative";
-  atsOptimized: boolean;
-  din5008Compliant?: boolean;
-}
-
-// Define generated cover letter interface
-interface GeneratedCoverLetter {
-  id?: string;
-  userId: string;
-  jobId?: string;
-  profileId: string;
-  templateId: string;
-  content: any;
-  createdAt?: any;
-  updatedAt?: any;
-}
-
-// Function to get cover letter templates
+// --- Cover Letter Template Functions ---
 export const getCoverLetterTemplates = async (): Promise<
   CoverLetterTemplate[]
 > => {
@@ -421,36 +299,28 @@ export const getCoverLetterTemplates = async (): Promise<
   const querySnapshot = await getDocs(q);
   const templates: CoverLetterTemplate[] = [];
   querySnapshot.forEach((doc) => {
-    templates.push({
-      id: doc.id,
-      ...doc.data(),
-    } as CoverLetterTemplate);
+    templates.push({ id: doc.id, ...doc.data() } as CoverLetterTemplate);
   });
-  console.log("Fetched Cover Letter Templates:", templates);
   if (templates.length === 0) {
     console.warn("No cover letter templates found in Firestore!");
   }
   return templates;
 };
-
-// Function to get a specific cover letter template
 export const getCoverLetterTemplate = async (
   templateId: string
 ): Promise<CoverLetterTemplate | null> => {
   const templateRef = doc(db, "coverLetterTemplates", templateId);
   const templateSnap = await getDoc(templateRef);
-
   if (templateSnap.exists()) {
     return {
       id: templateSnap.id,
       ...templateSnap.data(),
     } as CoverLetterTemplate;
   }
-
   return null;
 };
 
-// Function to create a generated cover letter
+// --- Generated Cover Letter Functions ---
 export const createGeneratedCoverLetter = async (
   userId: string,
   coverLetterData: Omit<
@@ -458,35 +328,13 @@ export const createGeneratedCoverLetter = async (
     "id" | "userId" | "createdAt" | "updatedAt"
   >
 ) => {
-  // Helper function to sanitize data for Firestore
-  const sanitizeData = (obj: any): any => {
-    if (obj === undefined) return null;
-    if (obj === null || typeof obj !== "object") return obj;
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => sanitizeData(item));
-    }
-
-    const sanitized: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeData(value);
-    }
-
-    return sanitized;
-  };
-
-  const sanitizedData = sanitizeData(coverLetterData);
-
   return addDoc(collection(db, "generatedCoverLetters"), {
-    ...sanitizedData,
+    ...coverLetterData,
     userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 };
-
-// Function to get all generated cover letters for a user
 export const getGeneratedCoverLetters = async (
   userId: string
 ): Promise<GeneratedCoverLetter[]> => {
@@ -494,76 +342,41 @@ export const getGeneratedCoverLetters = async (
     collection(db, "generatedCoverLetters"),
     where("userId", "==", userId)
   );
-
   const querySnapshot = await getDocs(q);
   const coverLetters: GeneratedCoverLetter[] = [];
-
   querySnapshot.forEach((doc) => {
-    coverLetters.push({
-      id: doc.id,
-      ...doc.data(),
-    } as GeneratedCoverLetter);
+    coverLetters.push({ id: doc.id, ...doc.data() } as GeneratedCoverLetter);
   });
-
   return coverLetters;
 };
-
-// Function to get a specific generated cover letter
 export const getGeneratedCoverLetter = async (
   coverLetterId: string
 ): Promise<GeneratedCoverLetter | null> => {
   const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
   const coverLetterSnap = await getDoc(coverLetterRef);
-
   if (coverLetterSnap.exists()) {
     return {
       id: coverLetterSnap.id,
       ...coverLetterSnap.data(),
     } as GeneratedCoverLetter;
   }
-
   return null;
 };
-
-// Function to update a generated cover letter
 export const updateGeneratedCoverLetter = async (
   coverLetterId: string,
   coverLetterData: Partial<
     Omit<GeneratedCoverLetter, "id" | "userId" | "createdAt" | "updatedAt">
   >
 ) => {
-  // Helper function to sanitize data for Firestore
-  const sanitizeData = (obj: any): any => {
-    if (obj === undefined) return null;
-    if (obj === null || typeof obj !== "object") return obj;
-
-    if (Array.isArray(obj)) {
-      return obj.map((item) => sanitizeData(item));
-    }
-
-    const sanitized: Record<string, any> = {};
-
-    for (const [key, value] of Object.entries(obj)) {
-      sanitized[key] = sanitizeData(value);
-    }
-
-    return sanitized;
-  };
-
-  const sanitizedData = sanitizeData(coverLetterData);
-
   const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
   return updateDoc(coverLetterRef, {
-    ...sanitizedData,
+    ...coverLetterData,
     updatedAt: serverTimestamp(),
   });
 };
-
-// Function to delete a generated cover letter
 export const deleteGeneratedCoverLetter = async (coverLetterId: string) => {
   const coverLetterRef = doc(db, "generatedCoverLetters", coverLetterId);
   return deleteDoc(coverLetterRef);
 };
 
-export { auth };
-export { db };
+export { auth, db };

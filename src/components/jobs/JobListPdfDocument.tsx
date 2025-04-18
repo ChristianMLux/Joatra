@@ -1,15 +1,6 @@
 import React from "react";
-import {
-  Page,
-  Text,
-  View,
-  Document,
-  StyleSheet,
-  Font,
-} from "@react-pdf/renderer";
+import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
 import { Job } from "@/lib/types";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 
 const STATUS_COLORS = {
   Beworben: { background: "#FFF9C4", text: "#795548" },
@@ -115,30 +106,6 @@ const styles = StyleSheet.create({
   },
   pageNumber: {},
 });
-
-const formatDateForPdf = (date: string | Date | any): string => {
-  if (!date) return "-";
-  let dateObj: Date;
-  try {
-    if (
-      typeof date === "object" &&
-      date !== null &&
-      "toDate" in date &&
-      typeof date.toDate === "function"
-    ) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      dateObj = new Date(date);
-    }
-    if (isNaN(dateObj.getTime())) return "-";
-    return format(dateObj, "dd.MM.yyyy", { locale: de });
-  } catch (error) {
-    console.error("Error formatting date for PDF:", date, error);
-    return "-";
-  }
-};
 
 const countStatusOccurrences = (jobs: Job[]) => {
   const counts: Record<string, number> = {};

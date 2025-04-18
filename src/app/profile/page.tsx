@@ -1,5 +1,3 @@
-// src/app/profile/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,15 +16,11 @@ import {
   List,
   ListItem,
   ListItemText,
-  Card,
-  CardContent,
   Chip,
   Paper,
   Grid,
   Avatar,
 } from "@mui/material";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
 import HomeIcon from "@mui/icons-material/Home";
@@ -35,6 +29,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import CodeIcon from "@mui/icons-material/Code";
 import LanguageIcon from "@mui/icons-material/Language";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import { formatDate } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -61,26 +56,6 @@ export default function ProfilePage() {
 
     loadProfile();
   }, [user]);
-
-  const formatDate = (date: any): string => {
-    if (!date) return "";
-
-    let dateObj: Date;
-
-    if (typeof date === "object" && "toDate" in date) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      dateObj = new Date(date);
-    }
-
-    if (isNaN(dateObj.getTime())) {
-      return "";
-    }
-
-    return format(dateObj, "MMMM yyyy", { locale: de });
-  };
 
   if (loading) {
     return <LoadingSpinner message="Profil wird geladen..." />;

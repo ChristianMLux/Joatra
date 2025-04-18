@@ -6,13 +6,11 @@ import {
   Grid,
   Card,
   CardContent,
-  CardHeader,
   CardActionArea,
   Typography,
   Chip,
 } from "@mui/material";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { formatDate } from "@/lib/utils";
 
 interface CVJobSelectorProps {
   jobs: Job[];
@@ -25,26 +23,6 @@ export default function CVJobSelector({
   selectedJobId,
   onSelect,
 }: CVJobSelectorProps) {
-  const formatDate = (date: any): string => {
-    if (!date) return "";
-
-    let dateObj: Date;
-
-    if (typeof date === "object" && "toDate" in date) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      dateObj = new Date(date);
-    }
-
-    if (isNaN(dateObj.getTime())) {
-      return "";
-    }
-
-    return format(dateObj, "dd. MMMM yyyy", { locale: de });
-  };
-
   if (jobs.length === 0) {
     return (
       <Box className="p-8 text-center border rounded-lg bg-gray-50">

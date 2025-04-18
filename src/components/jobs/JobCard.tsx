@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { updateJob, deleteJob } from "@/lib/firebase/firebase";
 import MuiStatusBadge from "./StatusBadge";
 import toast from "react-hot-toast";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import { JobCardProps } from "@/lib/types";
-import { Timestamp } from "firebase/firestore";
 import MuiButton from "@/components/ui/Button";
 
 import {
@@ -37,6 +34,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ArticleIcon from "@mui/icons-material/Article";
+import { formatDate } from "@/lib/utils";
 
 const cardShadow =
   "0px 2px 4px -1px rgba(0,0,0,0.06), 0px 4px 6px -1px rgba(0,0,0,0.1)";
@@ -57,26 +55,6 @@ export default function MuiJobCard({
 
   const statusMenuOpen = Boolean(statusAnchorEl);
   const actionsMenuOpen = Boolean(menuAnchorEl);
-
-  const formatDate = (date: string | Date | Timestamp | undefined) => {
-    if (!date) return "Kein Datum";
-
-    let dateObj: Date;
-
-    if (typeof date === "object" && "toDate" in date) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      dateObj = new Date(date);
-    }
-
-    if (isNaN(dateObj.getTime())) {
-      return "Ungültiges Datum";
-    }
-
-    return format(dateObj, "dd. MMMM yyyy", { locale: de });
-  };
 
   const handleStatusChange = async (
     newStatus: "Beworben" | "Interview" | "Abgelehnt" | "Angenommen"

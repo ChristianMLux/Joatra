@@ -6,28 +6,13 @@ import {
   Experience,
   Education,
 } from "../types";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
 import {
   tailorExperienceDescriptionAction,
   tailorEducationDescriptionAction,
 } from "@/app/actions/cvActions";
 import { serializeObjectForServerAction } from "../utils";
 
-export const extractKeywords = (job: Job | null): string[] => {
-  if (!job) return [];
-  const keywordSources = [
-    job.jobTitle,
-    job.company,
-    job.notes || "",
-    ...(job.techStack || []),
-  ].filter(Boolean);
-  const combinedText = keywordSources.join(" ").toLowerCase();
-  const techKeywords = extractTechKeywords(combinedText);
-  const softSkills = extractSoftSkills(combinedText);
-  return [...new Set([...techKeywords, ...softSkills])];
-};
-
+// --- Keyword Extraction ---
 const extractTechKeywords = (text: string): string[] => {
   const techKeywordList = [
     "javascript",
@@ -142,6 +127,21 @@ const extractSoftSkills = (text: string): string[] => {
   return softSkillsList.filter((skill) => text.includes(skill));
 };
 
+export const extractKeywords = (job: Job | null): string[] => {
+  if (!job) return [];
+  const keywordSources = [
+    job.jobTitle,
+    job.company,
+    job.notes || "",
+    ...(job.techStack || []),
+  ].filter(Boolean);
+  const combinedText = keywordSources.join(" ").toLowerCase();
+  const techKeywords = extractTechKeywords(combinedText);
+  const softSkills = extractSoftSkills(combinedText);
+  return [...new Set([...techKeywords, ...softSkills])];
+};
+
+// --- Skill Sorting ---
 export const sortSkillsByRelevance = (
   skills: Skill[],
   keywords: string[]
@@ -159,20 +159,26 @@ export const sortSkillsByRelevance = (
   });
 };
 
-export const formatDate = (date: any, language: string = "de"): string => {
-  if (!date) return "";
-  let dateObj: Date;
-  if (typeof date === "object" && "toDate" in date) {
-    dateObj = date.toDate();
-  } else if (date instanceof Date) {
-    dateObj = date;
-  } else {
-    dateObj = new Date(date);
-  }
-  if (isNaN(dateObj.getTime())) return "";
-  return format(dateObj, "MM/yyyy", {
-    locale: language === "de" ? de : undefined,
+// --- Summary Generation ---
+const calculateYearsOfExperience = (experiences: Experience[]): number => {
+  let totalMonths = 0;
+  experiences.forEach((exp) => {
+    try {
+      const startDate = new Date(exp.startDate);
+      const endDate = exp.ongoing
+        ? new Date()
+        : new Date(exp.endDate || new Date());
+      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        const months =
+          (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+          (endDate.getMonth() - startDate.getMonth());
+        totalMonths += Math.max(0, months);
+      }
+    } catch (e) {
+      console.error("Error calculating experience duration for entry:", exp, e);
+    }
   });
+  return Math.floor(totalMonths / 12);
 };
 
 const generateSummary = (
@@ -190,48 +196,51 @@ const generateSummary = (
     .map((s) => s.name)
     .join(", ");
   if (job) {
-    return `Erfahrene(r) ${job.jobTitle} mit ${yearsOfExperience} Jahren Berufserfahrung und fundiertem Wissen in ${topSkills}. Auf der Suche nach einer neuen Herausforderung bei ${job.company}, um meine Fähigkeiten weiterzuentwickeln und zum Unternehmenserfolg beizutragen.`;
+    return `Erfahrene(r) ${job.jobTitle || "Fachkraft"} mit ${yearsOfExperience} Jahren Berufserfahrung und fundiertem Wissen in ${topSkills || "relevanten Technologien"}. Auf der Suche nach einer neuen Herausforderung bei ${job.company}, um meine Fähigkeiten weiterzuentwickeln und zum Unternehmenserfolg beizutragen.`;
   } else {
-    return `${name} ist ein(e) motivierte(r) Fachkraft mit ${yearsOfExperience} Jahren Berufserfahrung und Expertise in ${topSkills}.`;
+    return `${name} ist ein(e) motivierte(r) Fachkraft mit ${yearsOfExperience} Jahren Berufserfahrung und Expertise in ${topSkills || "seinem/ihrem Fachgebiet"}.`;
   }
 };
 
-const calculateYearsOfExperience = (experiences: Experience[]): number => {
-  let totalMonths = 0;
-  experiences.forEach((exp) => {
-    const startDate = new Date(exp.startDate);
-    const endDate = exp.ongoing
-      ? new Date()
-      : new Date(exp.endDate || new Date());
-    const months =
-      (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-      (endDate.getMonth() - startDate.getMonth());
-    totalMonths += months;
-  });
-  return Math.floor(totalMonths / 12);
-};
-
+// --- Main CV Generation Function ---
 export const generateCV = async (
   profile: UserProfile,
   job: Job | null,
   template: CVTemplate
 ): Promise<any> => {
   const keywords = extractKeywords(job);
-  const sortedSkills = sortSkillsByRelevance(profile.skills, keywords);
+  const sortedSkills = sortSkillsByRelevance(profile.skills || [], keywords);
 
-  const sortedExperienceRaw = [...profile.experience].sort((a, b) => {
-    const aDate = new Date(a.startDate);
-    const bDate = new Date(b.startDate);
-    return bDate.getTime() - aDate.getTime();
+  const sortedExperienceRaw = [...(profile.experience || [])].sort((a, b) => {
+    try {
+      const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+      if (isNaN(dateA) || isNaN(dateB)) return 0;
+      return dateB - dateA;
+    } catch {
+      return 0;
+    }
+  });
+  const sortedEducationRaw = [...(profile.education || [])].sort((a, b) => {
+    try {
+      const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+      if (isNaN(dateA) || isNaN(dateB)) return 0;
+      return dateB - dateA;
+    } catch {
+      return 0;
+    }
   });
 
   const serializedJob = job ? serializeObjectForServerAction(job) : null;
 
+  // Tailor Experience Descriptions
   const tailoredExperiencePromises = sortedExperienceRaw.map(async (exp) => {
+    const serializedExp = serializeObjectForServerAction(exp);
     if (job && exp.description) {
       try {
         const result = await tailorExperienceDescriptionAction({
-          experience: exp,
+          experience: serializedExp,
           job: serializedJob,
           language: template.language,
         });
@@ -254,17 +263,13 @@ export const generateCV = async (
   });
   const tailoredExperience = await Promise.all(tailoredExperiencePromises);
 
-  const sortedEducationRaw = [...profile.education].sort((a, b) => {
-    const aDate = new Date(a.startDate);
-    const bDate = new Date(b.startDate);
-    return bDate.getTime() - aDate.getTime();
-  });
-
+  // Tailor Education Descriptions
   const tailoredEducationPromises = sortedEducationRaw.map(async (edu) => {
+    const serializedEdu = serializeObjectForServerAction(edu);
     if (job && edu.description) {
       try {
         const result = await tailorEducationDescriptionAction({
-          education: edu,
+          education: serializedEdu,
           job: serializedJob,
           language: template.language,
         });
@@ -287,13 +292,14 @@ export const generateCV = async (
   });
   const tailoredEducation = await Promise.all(tailoredEducationPromises);
 
+  // Final content object for PDF
   const content = {
     personalDetails: profile.personalDetails,
     summary: generateSummary(profile, job, keywords),
     experience: tailoredExperience,
     education: tailoredEducation,
     skills: sortedSkills,
-    languages: profile.languages,
+    languages: profile.languages || [],
     certificates: profile.certificates || [],
     interests: profile.interests || [],
     keywords: keywords,
@@ -302,14 +308,5 @@ export const generateCV = async (
     photoIncluded: template.photoIncluded,
   };
 
-  console.log("Generated CV Content:", content);
   return content;
-};
-
-export const generateGermanCV = (content: any): string => {
-  return JSON.stringify(content);
-};
-
-export const generateInternationalCV = (content: any): string => {
-  return JSON.stringify(content);
 };

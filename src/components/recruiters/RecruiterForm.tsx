@@ -11,6 +11,8 @@ import LoadingSpinner from "@/components/layout/MuiLoadingSpinner";
 import MuiButton from "@/components/ui/Button";
 import Title from "@/components/ui/Title";
 import { useRecruiters } from "@/providers/RecruitersProvider";
+import FormTextField from "@/components/ui/FormTextField";
+import { TextField } from "@mui/material";
 
 export default function RecruiterForm({ recruiterId }: RecruiterFormProps) {
   const { user } = useAuth();
@@ -116,52 +118,39 @@ export default function RecruiterForm({ recruiterId }: RecruiterFormProps) {
           <h2 className="text-lg font-medium text-gray-900 mb-4">
             Allgemeine Informationen
           </h2>
-
-          <div className="form-group">
-            <label htmlFor="name" className="form-label">
-              Name des Vermittlers *
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              value={formData.name}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="Vor- und Nachname"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="company" className="form-label">
-              Unternehmen
-            </label>
-            <input
-              id="company"
-              name="company"
-              type="text"
-              value={formData.company}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="Firma des Vermittlers (optional)"
-            />
-          </div>
+          <FormTextField
+            label="Name des Vermittlers "
+            name="name"
+            value={formData.name || ""}
+            onChange={handleChange}
+            placeholder="Vor- und Nachname"
+            required
+          />
+          <FormTextField
+            label="Unternehmen"
+            name="company"
+            value={formData.company || ""}
+            onChange={handleChange}
+            placeholder="Firma des Vermittlers (optional)"
+          />
         </div>
 
-        <div className="mb-6 border-t border-gray-200 pt-6">
+        <div className="mt-6 border-t border-gray-200 pt-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Notizen</h2>
-
-          <div className="form-group">
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes || ""}
-              onChange={handleChange}
-              className="input-field min-h-[120px]"
-              placeholder="Weitere Informationen zum Vermittler..."
-            ></textarea>
-          </div>
+          <TextField
+            label="Notizen"
+            id="notes"
+            name="notes"
+            value={formData.notes || ""}
+            onChange={handleChange}
+            multiline
+            minRows={4}
+            placeholder="Weitere Informationen zum Vermittler..."
+            fullWidth
+            margin="normal"
+            variant="outlined"
+            InputLabelProps={{ shrink: true }}
+          />
         </div>
 
         <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">

@@ -5,7 +5,6 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
   Link as PdfLink,
 } from "@react-pdf/renderer";
 import {
@@ -17,8 +16,7 @@ import {
   Education,
   Language,
 } from "@/lib/types";
-import { format } from "date-fns";
-import { de } from "date-fns/locale";
+import { formatDate } from "@/lib/utils";
 
 // --- Styling ---
 const styles = StyleSheet.create({
@@ -140,56 +138,22 @@ const styles = StyleSheet.create({
 });
 
 const formatDateRange = (
-  startDate: any,
-  endDate: any,
+  start: any,
+  end: any,
   ongoing: boolean | undefined,
-  lang: string = "de"
+  lang: "de" | "en" = "de"
 ): string => {
-  const formatStr = "MM/yyyy";
-  const localeOptions = lang === "de" ? { locale: de } : undefined;
-
-  const formatDatePart = (date: any): string => {
-    if (!date) return "";
-    let dateObj: Date;
-    if (
-      typeof date === "object" &&
-      date !== null &&
-      "toDate" in date &&
-      typeof date.toDate === "function"
-    ) {
-      dateObj = date.toDate();
-    } else if (date instanceof Date) {
-      dateObj = date;
-    } else {
-      try {
-        dateObj = new Date(date);
-      } catch {
-        return "";
-      }
-    }
-    if (isNaN(dateObj.getTime())) return "";
-    try {
-      return format(dateObj, formatStr, localeOptions);
-    } catch (e) {
-      console.error("Error formatting date:", date, e);
-      return "Invalid Date";
-    }
-  };
-
-  const start = formatDatePart(startDate);
-  const end = ongoing
+  const startFormatted = formatDate(start, "MM/yyyy", lang);
+  const endFormatted = ongoing
     ? lang === "de"
       ? "Heute"
       : "Present"
-    : formatDatePart(endDate);
+    : formatDate(end, "MM/yyyy", lang);
 
-  if (start === "Invalid Date" || end === "Invalid Date")
-    return "Invalid Date Range";
-  if (!start && !end) return "";
-  if (start && !end) return start;
-  if (!start && end && !ongoing) return end;
-  if (start && end) return `${start} - ${end}`;
-  return "";
+  if (startFormatted === "-" && endFormatted === "-") return "-";
+  if (startFormatted !== "-" && endFormatted === "-") return startFormatted;
+  if (startFormatted === "-" && endFormatted !== "-") return endFormatted;
+  return `${startFormatted} - ${endFormatted}`;
 };
 
 interface CVPdfDocumentProps {
